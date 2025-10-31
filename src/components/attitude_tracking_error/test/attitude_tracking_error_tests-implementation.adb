@@ -55,7 +55,7 @@ package body Attitude_Tracking_Error_Tests.Implementation is
       );
 
       -- Call Algo:
-      Self.Tester.Tick_T_Send ((Time => T.System_Time, Count => 0));
+      T.Tick_T_Send ((Time => T.System_Time, Count => 0));
 
       -- Make sure data product produced:
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
