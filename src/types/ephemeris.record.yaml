@@ -14,10 +14,10 @@ fields:
   - name: V_Bdy_Zero_N
     type: Packed_F32x3.T
     description: "[m/s] Velocity of orbital body"
-  - name: Sigma_BN
+  - name: Sigma_Bn
     type: Packed_F32x3.T
     description: "MRP attitude of the orbital body fixed frame relative to inertial"
-  - name: Omega_BN_B
+  - name: Omega_Bn_B
     type: Packed_F32x3.T
     description: "[r/s] angular velocity of the orbital body relative to inertial"
   - name: Time_Tag

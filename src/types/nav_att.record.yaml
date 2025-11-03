@@ -10,9 +10,9 @@ fields:
   - name: Time_Tag
     type: Short_Float
     format: F32
-  - name: Sigma_BN
+  - name: Sigma_Bn
     type: Packed_F32x3.T
-  - name: Omega_BN_B
+  - name: Omega_Bn_B
     type: Packed_F32x3.T
   - name: Veh_Sun_Pnt_Bdy
     type: Packed_F32x3.T
