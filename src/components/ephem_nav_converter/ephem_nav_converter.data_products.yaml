@@ -1,0 +1,6 @@
+---
+description: Data products for the Ephem Nav Converter component.
+data_products:
+  - name: Navigation_Translation
+    type: Nav_Trans.T
+    description: Navigation translation message (position and velocity in inertial frame).

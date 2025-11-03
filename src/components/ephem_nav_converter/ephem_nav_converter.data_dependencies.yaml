@@ -1,0 +1,6 @@
+---
+description: Data dependencies for the Ephem Nav Converter component.
+data_dependencies:
+  - name: Input_Ephemeris
+    type: Ephemeris.T
+    description: Ephemeris state (position and velocity) to convert to navigation message
