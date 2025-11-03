@@ -1,0 +1,24 @@
+--------------------------------------------------------------------------------
+-- Ephem_Nav_Converter Tests Spec
+--------------------------------------------------------------------------------
+
+-- This is a unit test suite for the Ephem Nav Converter component
+package Ephem_Nav_Converter_Tests.Implementation is
+
+   -- Test data and state:
+   type Instance is new Ephem_Nav_Converter_Tests.Base_Instance with private;
+   type Class_Access is access all Instance'Class;
+
+private
+   -- Fixture procedures:
+   overriding procedure Set_Up_Test (Self : in out Instance);
+   overriding procedure Tear_Down_Test (Self : in out Instance);
+
+   -- Run algorithm to ensure integration is sound.
+   overriding procedure Test (Self : in out Instance);
+
+   -- Test data and state:
+   type Instance is new Ephem_Nav_Converter_Tests.Base_Instance with record
+      null;
+   end record;
+end Ephem_Nav_Converter_Tests.Implementation;
