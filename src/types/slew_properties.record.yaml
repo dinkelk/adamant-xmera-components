@@ -1,0 +1,30 @@
+---
+#  typedef struct {
+#      float slewTime;       /*!< [s] total time for the three-axes maneuver */
+#      float slewAngle;      /*!< [rad] total angle sweep around one axis */
+#      float slewMaxRate;    /*!< [rad/s] maximum spacecraft body rate norm */
+#      float slewMaxTorque;  /*!< [Nm] maximum torque for slew */
+#      int slewRotAxis;      /*!< [-] axes about which to perform the Sun search */
+#  } SlewProperties;
+description: Structure defining properties for a sun search slew maneuver
+fields:
+  - name: Slew_Time
+    type: Short_Float
+    format: F32
+    description: "[s] Total time for the three-axes maneuver"
+  - name: Slew_Angle
+    type: Short_Float
+    format: F32
+    description: "[rad] Total angle sweep around one axis"
+  - name: Slew_Max_Rate
+    type: Short_Float
+    format: F32
+    description: "[rad/s] Maximum spacecraft body rate norm"
+  - name: Slew_Max_Torque
+    type: Short_Float
+    format: F32
+    description: "[Nm] Maximum torque for slew"
+  - name: Slew_Rot_Axis
+    type: Interfaces.Integer_32
+    format: I32
+    description: "[-] Axis about which to perform the Sun search (1=x, 2=y, 3=z)"

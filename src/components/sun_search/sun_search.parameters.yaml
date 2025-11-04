@@ -1,0 +1,20 @@
+---
+description: Parameters for the Sun Search component
+parameters:
+  - name: Spacecraft_Inertia
+    description: "[kg m^2] Spacecraft inertia matrix (3x3 in row-major order, 9 elements)"
+    type: Packed_F32x9.T
+    default: "[others => 0.0]"
+  # TODO, need reasonable defaults here.
+  - name: Slew_1_Properties
+    description: Properties for the first slew maneuver (time, angle, max rate, max torque, rotation axis)
+    type: Slew_Properties.T
+    default: "(Slew_Time => 0.0, Slew_Angle => 0.0, Slew_Max_Rate => 0.0, Slew_Max_Torque => 0.0, Slew_Rot_Axis => 1)"
+  - name: Slew_2_Properties
+    description: Properties for the second slew maneuver (time, angle, max rate, max torque, rotation axis)
+    type: Slew_Properties.T
+    default: "(Slew_Time => 0.0, Slew_Angle => 0.0, Slew_Max_Rate => 0.0, Slew_Max_Torque => 0.0, Slew_Rot_Axis => 2)"
+  - name: Slew_3_Properties
+    description: Properties for the third slew maneuver (time, angle, max rate, max torque, rotation axis)
+    type: Slew_Properties.T
+    default: "(Slew_Time => 0.0, Slew_Angle => 0.0, Slew_Max_Rate => 0.0, Slew_Max_Torque => 0.0, Slew_Rot_Axis => 3)"
