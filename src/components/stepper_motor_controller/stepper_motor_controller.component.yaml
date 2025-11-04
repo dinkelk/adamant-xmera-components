@@ -1,0 +1,19 @@
+---
+description: Stepper motor controller algorithm computes commanded motor steps from the reference angle input.
+execution: passive
+init:
+  description: Initializes the stepper motor controller algorithm.
+connectors:
+  - description: Run the algorithm up to the current time.
+    type: Tick.T
+    kind: recv_sync
+  - description: Fetch a data product item from the database.
+    type: Data_Product_Fetch.T
+    return_type: Data_Product_Return.T
+    kind: request
+  - description: The motor step command output connector
+    type: Motor_Step_Command.T
+    kind: send
+  - description: The parameter update connector.
+    type: Parameter_Update.T
+    kind: modify

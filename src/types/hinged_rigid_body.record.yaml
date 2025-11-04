@@ -1,0 +1,16 @@
+---
+#  /*! @brief Structure used to define the individual Hinged Rigid Body  data message*/
+#  typedef struct {
+#      float theta;     //!< [rad], panel angular displacement
+#      float thetaDot;  //!< [rad/s], panel angular displacement rate
+#  } HingedRigidBodyMsgF32Payload;
+description: Hinged rigid body state telemetry message
+fields:
+  - name: Theta
+    type: Short_Float
+    format: F32
+    description: "[rad] Panel angular displacement"
+  - name: Theta_Dot
+    type: Short_Float
+    format: F32
+    description: "[rad/s] Panel angular displacement rate"
