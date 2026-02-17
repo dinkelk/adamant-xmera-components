@@ -8,8 +8,13 @@ with Algorithm_Wrapper_Util;
 
 package body Component.Mimu_Majority_Vote.Implementation is
 
+   -- Number of active IMUs used by the majority vote algorithm.
+   -- The algorithm's omegaDifferencesMag array is sized MAX_IMU_VEH_COUNT - 1
+   -- and the fault correction formula is hardcoded for 3 inputs.
+   Num_Active_Imus : constant := MAX_IMU_VEH_COUNT - 1;
+
    -- Array type for passing IMU inputs to the C algorithm.
-   type Imu_Input_Array is array (Natural range 0 .. MAX_IMU_VEH_COUNT - 1) of aliased Packed_F32x3_Record.C.U_C;
+   type Imu_Input_Array is array (Natural range 0 .. Num_Active_Imus - 1) of aliased Packed_F32x3_Record.C.U_C;
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -36,7 +41,7 @@ package body Component.Mimu_Majority_Vote.Implementation is
       use Data_Product_Enums.Data_Dependency_Status;
       use Algorithm_Wrapper_Util;
 
-      -- Grab data dependencies for all 4 IMU angular velocity inputs:
+      -- Grab data dependencies for the 3 active IMU angular velocity inputs:
       Imu_1 : Packed_F32x3_Record.T;
       Imu_1_Status : constant Data_Dependency_Status.E :=
          Self.Get_Imu_1_Ang_Vel_Body (Value => Imu_1, Stale_Reference => Arg.Time);
@@ -46,9 +51,6 @@ package body Component.Mimu_Majority_Vote.Implementation is
       Imu_3 : Packed_F32x3_Record.T;
       Imu_3_Status : constant Data_Dependency_Status.E :=
          Self.Get_Imu_3_Ang_Vel_Body (Value => Imu_3, Stale_Reference => Arg.Time);
-      Imu_4 : Packed_F32x3_Record.T;
-      Imu_4_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_4_Ang_Vel_Body (Value => Imu_4, Stale_Reference => Arg.Time);
    begin
       -- Update the parameters:
       Self.Update_Parameters;
@@ -56,22 +58,20 @@ package body Component.Mimu_Majority_Vote.Implementation is
       -- Check all dependencies are available:
       if Is_Dep_Status_Success (Imu_1_Status) and then
          Is_Dep_Status_Success (Imu_2_Status) and then
-         Is_Dep_Status_Success (Imu_3_Status) and then
-         Is_Dep_Status_Success (Imu_4_Status)
+         Is_Dep_Status_Success (Imu_3_Status)
       then
          declare
             -- Convert Ada packed types to C types and build input array:
             Imu_Inputs : aliased Imu_Input_Array :=
                [Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_1)),
                 Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_2)),
-                Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_3)),
-                Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_4))];
+                Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_3))];
 
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
                Self.Alg,
                Imu_Inputs     => Imu_Inputs (Imu_Inputs'First)'Unchecked_Access,
-               Number_Of_Imus => MAX_IMU_VEH_COUNT
+               Number_Of_Imus => Num_Active_Imus
             );
          begin
             -- Send out data product:

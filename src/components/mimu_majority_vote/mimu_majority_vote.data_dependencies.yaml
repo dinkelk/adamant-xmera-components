@@ -10,6 +10,3 @@ data_dependencies:
   - name: Imu_3_Ang_Vel_Body
     type: Packed_F32x3_Record.T
     description: "[rad/s] Angular velocity in body frame from IMU 3"
-  - name: Imu_4_Ang_Vel_Body
-    type: Packed_F32x3_Record.T
-    description: "[rad/s] Angular velocity in body frame from IMU 4"
