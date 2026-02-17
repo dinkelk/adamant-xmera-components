@@ -3,7 +3,8 @@ pragma Ada_2012;
 pragma Style_Checks (Off);
 pragma Warnings     (Off, "-gnatwu");
 
-with Interfaces.C;         use Interfaces; use Interfaces.C;
+with Interfaces.C;              use Interfaces; use Interfaces.C;
+with Mimu_Majority_Vote_Output.C;
 with Packed_F32x3_Record.C;
 
 package Mimu_Majority_Vote_Algorithm_C is
@@ -26,15 +27,6 @@ package Mimu_Majority_Vote_Algorithm_C is
    --* Opaque handle for a MimuMajorityVoteAlgorithm instance.
    type Mimu_Majority_Vote_Algorithm is limited private;
    type Mimu_Majority_Vote_Algorithm_Access is access all Mimu_Majority_Vote_Algorithm;
-
-   --* C-compatible output from the MIMU majority vote algorithm.
-   --* Layout matches MimuMajorityVoteOutput_c in mimuMajorityVoteAlgorithm_c.h.
-   type Mimu_Majority_Vote_Output is record
-      Avg_Ang_Vel_Body   : aliased Packed_F32x3_Record.C.U_C;
-      Fault_Detected     : aliased C_bool;
-      Mimu_Index_Faulted : aliased Integer_32;
-   end record
-   with Convention => C_Pass_By_Copy;
 
    --* @brief Construct a new MimuMajorityVoteAlgorithm.
    function Create
@@ -59,7 +51,7 @@ package Mimu_Majority_Vote_Algorithm_C is
      (Self           : Mimu_Majority_Vote_Algorithm_Access;
       Imu_Inputs     : Packed_F32x3_Record.C.U_C_Access;
       Number_Of_Imus : Unsigned_32)
-     return Mimu_Majority_Vote_Output
+     return Mimu_Majority_Vote_Output.C.U_C
      with Import       => True,
           Convention   => C,
           External_Name => "MimuMajorityVoteAlgorithm_update";

@@ -1,0 +1,18 @@
+---
+#  typedef struct {
+#      Vector3f_c avgAngVelBody; /*!< [rad/s] Averaged angular velocity in body frame */
+#      bool faultDetected;       /*!< Whether a MIMU fault was detected */
+#      int32_t mimuIndexFaulted; /*!< Index of faulted MIMU (-1 if no fault) */
+#  } MimuMajorityVoteOutput_c;
+fields:
+  - name: Avg_Ang_Vel_Body
+    type: Packed_F32x3.T
+    description: "[rad/s] Averaged angular velocity in body frame"
+  - name: Fault_Detected
+    type: Interfaces.Unsigned_8
+    format: U8
+    description: "Whether a MIMU fault was detected (0 = false, nonzero = true)"
+  - name: Mimu_Index_Faulted
+    type: Interfaces.Integer_32
+    format: I32
+    description: "Index of faulted MIMU (-1 if no fault)"
