@@ -9,7 +9,7 @@ with Nav_Trans.C;
 
 package Nav_Aggregate_Algorithm_C is
 
-   -- MAX_AGG_NAV_MSG must match the #define in navAggregateAlgorithm_c.h:13
+   -- MAX_AGG_NAV_MSG must match the #define in navAggregateAlgorithm.h:9
    -- Re-run h2ads if the C header changes to regenerate this binding
    MAX_AGG_NAV_MSG : constant := 10;
 
