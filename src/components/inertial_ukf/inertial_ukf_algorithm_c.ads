@@ -4,67 +4,20 @@ pragma Style_Checks (Off);
 pragma Warnings (Off, "-gnatwu");
 
 with Interfaces.C; use Interfaces; use Interfaces.C;
-with Packed_F32x3_Record.C;
-with Packed_F32x4_Record.C;
-with Packed_F32x9_Record.C;
+with Gyro_Input.C;
+with Inertial_Filter_Output.C;
+with Nav_Att_Output.C;
+with Rw_Array_Config_Input.C;
+with Rw_Speeds_Input.C;
+with St_Att_Input.C;
+with Vehicle_Config_Input.C;
 
 package Inertial_UKF_Algorithm_C is
 
-   --* C-compatible representation of STAttInput_c.
-   type ST_Att_Input is record
-      Time_Tag      : aliased Short_Float;
-      Mrp_Bdy_Inrtl : aliased Packed_F32x3_Record.C.U_C;
-      Omega_Bn_B    : aliased Packed_F32x3_Record.C.U_C;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   --* C-compatible representation of GyroInput_c.
-   type Gyro_Input is record
-      Gyro_B : aliased Packed_F32x3_Record.C.U_C;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   --* C-compatible representation of RWSpeedsInput_c.
-   type RW_Speeds_Input is record
-      Wheel_Speeds : aliased Packed_F32x4_Record.C.U_C;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   --* C-compatible representation of RWArrayConfigInput_c.
-   type RW_Array_Config_Input is record
-      Num_RW : aliased Integer_32;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   --* C-compatible representation of VehicleConfigInput_c.
-   --* ISCPnt_B_B is stored in column-major order to match the Eigen::Matrix3f
-   --* memory layout used internally.
-   type Vehicle_Config_Input is record
-      ISCPnt_B_B : aliased Packed_F32x9_Record.C.U_C;
-      Mass_SC    : aliased Short_Float;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   --* C-compatible representation of NavAttOutput_c.
-   type Nav_Att_Output is record
-      Time_Tag        : aliased Long_Float;
-      Sigma_Bn        : aliased Packed_F32x3_Record.C.U_C;
-      Omega_Bn_B      : aliased Packed_F32x3_Record.C.U_C;
-      Veh_Sun_Pnt_Bdy : aliased Packed_F32x3_Record.C.U_C;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   --* C-compatible representation of InertialFilterOutput_c.
-   type Inertial_Filter_Output is record
-      Time_Tag : aliased Long_Float;
-      Num_Obs  : aliased Integer_32;
-   end record
-   with Convention => C_Pass_By_Copy;
-
    --* Combined output of the inertial UKF algorithm update step.
    type Inertial_UKF_Output is record
-      Nav_Att : aliased Nav_Att_Output;
-      Filter  : aliased Inertial_Filter_Output;
+      Nav_Att : aliased Nav_Att_Output.C.U_C;
+      Filter  : aliased Inertial_Filter_Output.C.U_C;
    end record
    with Convention => C_Pass_By_Copy;
 
@@ -76,11 +29,11 @@ package Inertial_UKF_Algorithm_C is
    --* @param Veh_Config Pointer to vehicle configuration input.
    --* @return Combined navigation attitude and filter output.
    function Update_State
-     (St_Att     : access constant ST_Att_Input;
-      Gyro       : access constant Gyro_Input;
-      Rw_Speeds  : access constant RW_Speeds_Input;
-      Rw_Config  : access constant RW_Array_Config_Input;
-      Veh_Config : access constant Vehicle_Config_Input)
+     (St_Att     : access constant St_Att_Input.C.U_C;
+      Gyro       : access constant Gyro_Input.C.U_C;
+      Rw_Speeds  : access constant Rw_Speeds_Input.C.U_C;
+      Rw_Config  : access constant Rw_Array_Config_Input.C.U_C;
+      Veh_Config : access constant Vehicle_Config_Input.C.U_C)
      return Inertial_UKF_Output
      with Import       => True,
           Convention   => C,

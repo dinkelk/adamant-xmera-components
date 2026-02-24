@@ -1,0 +1,9 @@
+---
+#  /*! @brief Abstracted RW speeds input. */
+#  typedef struct {
+#      float wheelSpeeds[4]; /*!< Reaction wheel speeds (rad/s) */
+#  } RWSpeedsInput_c;
+fields:
+  - name: Wheel_Speeds
+    type: Packed_F32x4.T
+    description: "[rad/s] Reaction wheel speeds"
