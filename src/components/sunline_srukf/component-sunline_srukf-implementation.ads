@@ -4,6 +4,7 @@
 
 -- Includes:
 with Tick;
+with Sunline_Srukf_Algorithm_C; use Sunline_Srukf_Algorithm_C;
 
 -- Sunline SRuKF pass-through algorithm wrapping the C++ SunlineSRuKFAlgorithm.
 package Component.Sunline_Srukf.Implementation is
@@ -16,12 +17,13 @@ package Component.Sunline_Srukf.Implementation is
    --------------------------------------------------
    -- Initializes the sunline SRuKF algorithm.
    overriding procedure Init (Self : in out Instance);
+   not overriding procedure Destroy (Self : in out Instance);
 
 private
 
    -- The component class instance record:
    type Instance is new Sunline_Srukf.Base_Instance with record
-      null; -- TODO
+      Alg : Sunline_Srukf_Algorithm_Access := null;
    end record;
 
    ---------------------------------------
