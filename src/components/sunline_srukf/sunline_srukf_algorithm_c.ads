@@ -4,7 +4,8 @@ pragma Style_Checks (Off);
 pragma Warnings     (Off, "-gnatwu");
 
 with Interfaces.C; use Interfaces; use Interfaces.C;
-with Packed_F32x3_Record.C;
+with Sunline_Srukf_Input.C;
+with Sunline_Srukf_Output.C;
 
 package Sunline_Srukf_Algorithm_C is
 
@@ -27,32 +28,6 @@ package Sunline_Srukf_Algorithm_C is
    type Sunline_Srukf_Algorithm is limited private;
    type Sunline_Srukf_Algorithm_Access is access all Sunline_Srukf_Algorithm;
 
-   --* Array type for CSS cosine measurement values.
-   type Cos_Values_Array is array (0 .. MAX_NUM_CSS - 1) of aliased Short_Float
-     with Convention => C;
-
-   --* C-compatible input structure for the sunline SRuKF algorithm.
-   type Sunline_Srukf_Input is record
-      Time_Tag        : aliased Long_Float;
-      Sigma_BN        : aliased Packed_F32x3_Record.C.U_C;
-      Omega_BN_B      : aliased Packed_F32x3_Record.C.U_C;
-      Veh_Sun_Pnt_Bdy : aliased Packed_F32x3_Record.C.U_C;
-      N_CSS           : aliased Unsigned_32;
-      Cos_Values      : aliased Cos_Values_Array;
-   end record
-   with Convention => C_Pass_By_Copy;
-
-   type Sunline_Srukf_Input_Access is access all Sunline_Srukf_Input;
-
-   --* C-compatible output structure for the sunline SRuKF algorithm.
-   type Sunline_Srukf_Output is record
-      Time_Tag        : aliased Long_Float;
-      Sigma_BN        : aliased Packed_F32x3_Record.C.U_C;
-      Omega_BN_B      : aliased Packed_F32x3_Record.C.U_C;
-      Veh_Sun_Pnt_Bdy : aliased Packed_F32x3_Record.C.U_C;
-   end record
-   with Convention => C_Pass_By_Copy;
-
    --* @brief Construct a new SunlineSRuKFAlgorithm.
    function Create
      return Sunline_Srukf_Algorithm_Access
@@ -73,8 +48,8 @@ package Sunline_Srukf_Algorithm_C is
    --* @return The computed output.
    function Update_State
      (Self  : Sunline_Srukf_Algorithm_Access;
-      Input : Sunline_Srukf_Input_Access)
-     return Sunline_Srukf_Output
+      Input : Sunline_Srukf_Input.C.U_C_Access)
+     return Sunline_Srukf_Output.C.U_C
      with Import       => True,
           Convention   => C,
           External_Name => "SunlineSRuKFAlgorithm_updateState";
