@@ -4,7 +4,7 @@
 
 -- Includes:
 with Tick;
-with Parameter_Update;
+with Thr_Firing_Remainder_Algorithm_C; use Thr_Firing_Remainder_Algorithm_C;
 
 -- Thruster firing remainder algorithm converts thruster force commands to on-time
 -- commands using pulse-width modulation with remainder tracking.
@@ -18,12 +18,13 @@ package Component.Thr_Firing_Remainder.Implementation is
    --------------------------------------------------
    -- Initializes the thruster firing remainder algorithm.
    overriding procedure Init (Self : in out Instance);
+   not overriding procedure Destroy (Self : in out Instance);
 
 private
 
    -- The component class instance record:
    type Instance is new Thr_Firing_Remainder.Base_Instance with record
-      null; -- TODO
+      Alg : Thr_Firing_Remainder_Algorithm_Access := null;
    end record;
 
    ---------------------------------------
@@ -65,7 +66,7 @@ private
    -- something special needs to happen after a parameter update. Examples of this might be copying certain parameters to
    -- hardware registers, or performing other special functionality that only needs to be performed after parameters have
    -- been updated.
-   overriding procedure Update_Parameters_Action (Self : in out Instance) is null;
+   overriding procedure Update_Parameters_Action (Self : in out Instance);
    -- This function is called when the parameter operation type is "Validate". The default implementation of this
    -- subprogram in the implementation package is a function that returns "Valid". However, this function can, and should be
    -- overridden if something special needs to happen to further validate a parameter. Examples of this might be validation of
