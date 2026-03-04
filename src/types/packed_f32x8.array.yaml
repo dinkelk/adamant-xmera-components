@@ -1,0 +1,5 @@
+---
+description: Packed 8 element vector of 32-bit floats. Used for thruster command arrays sized to the system thruster count.
+type: Short_Float
+format: F32
+length: 8
