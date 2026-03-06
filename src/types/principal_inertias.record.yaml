@@ -1,0 +1,22 @@
+---
+#  /**
+#   * @brief Principal vehicle inertia terms about point B in body frame.
+#   */
+#  typedef struct {
+#      float IxxPntB_B;
+#      float IyyPntB_B;
+#      float IzzPntB_B;
+#  } PrincipleInertias;
+fields:
+  - name: Ixx_Pnt_B_B
+    type: Short_Float
+    format: F32
+    description: "IxxPntB_B principal vehicle inertia term (0, 0)"
+  - name: Iyy_Pnt_B_B
+    type: Short_Float
+    format: F32
+    description: "IyyPntB_B principal vehicle inertia term (1, 1)"
+  - name: Izz_Pnt_B_B
+    type: Short_Float
+    format: F32
+    description: "IzzPntB_B principal vehicle inertia term (2, 2)"
