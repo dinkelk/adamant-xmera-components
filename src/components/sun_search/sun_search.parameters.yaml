@@ -2,9 +2,9 @@
 description: Parameters for the Sun Search component
 parameters:
   - name: Spacecraft_Inertia
-    description: "[kg m^2] Spacecraft inertia matrix (3x3 in row-major order, 9 elements)"
-    type: Packed_F32x9.T
-    default: "[others => 0.0]"
+    description: "[kg m^2] Spacecraft principal inertia terms about point B in body frame"
+    type: Principal_Inertias.T
+    default: "(Ixx_Pnt_B_B => 0.0, Iyy_Pnt_B_B => 0.0, Izz_Pnt_B_B => 0.0)"
   # TODO, need reasonable defaults here.
   - name: Slew_1_Properties
     description: Properties for the first slew maneuver (time, angle, max rate, max torque, rotation axis)

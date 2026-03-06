@@ -7,7 +7,7 @@ with Interfaces.C;     use Interfaces; use Interfaces.C;
 with Att_Guid.C;
 with Nav_Att.C;
 with Slew_Properties.C;
-with Vehicle_Config.C;
+with Principal_Inertias.C;
 
 package Sun_Search_Algorithm_C is
 
@@ -47,11 +47,11 @@ package Sun_Search_Algorithm_C is
    --* @brief Reset the algorithm state.
    --* @param Self               The algorithm instance.
    --* @param Current_Sim_Nanos  Time stamp for reset in nanoseconds.
-   --* @param Vehicle_Config_In  Pointer to vehicle configuration message payload.
+   --* @param Principle_Inertia  Pointer to principal vehicle inertia terms.
    procedure Reset
      (Self               : Sun_Search_Algorithm_Access;
       Current_Sim_Nanos  : Unsigned_64;
-      Vehicle_Config_In  : Vehicle_Config.C.U_C_Access)
+      Principle_Inertia  : Principal_Inertias.C.U_C_Access)
      with Import       => True,
           Convention   => C,
           External_Name => "SunSearchAlgorithm_reset";

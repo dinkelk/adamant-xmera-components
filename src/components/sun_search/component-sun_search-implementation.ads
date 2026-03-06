@@ -77,7 +77,7 @@ private
    -- to be implemented here.
    overriding function Validate_Parameters (
       Self : in out Instance;
-      Spacecraft_Inertia : in Packed_F32x9.U;
+      Spacecraft_Inertia : in Principal_Inertias.U;
       Slew_1_Properties : in Slew_Properties.U;
       Slew_2_Properties : in Slew_Properties.U;
       Slew_3_Properties : in Slew_Properties.U
