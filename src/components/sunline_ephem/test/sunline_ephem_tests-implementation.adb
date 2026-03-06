@@ -4,6 +4,7 @@
 
 with Basic_Assertions; use Basic_Assertions;
 with Nav_Att;
+with Packed_F64x3;
 with Packed_F32x3.Assertion; use Packed_F32x3.Assertion;
 
 package body Sunline_Ephem_Tests.Implementation is
@@ -45,8 +46,8 @@ package body Sunline_Ephem_Tests.Implementation is
       -- Test data based on Python test:
       -- Sun at origin, spacecraft at various positions, identity attitude
       type Test_Vector is record
-         Sc_Position : Packed_F32x3.T;  -- Spacecraft position
-         Expected_Sunline : Packed_F32x3.T;  -- Expected sunline direction
+         Sc_Position : Packed_F64x3.T;  -- Spacecraft position
+         Expected_Sunline : Packed_F32x3.T;  -- Expected sunline direction (float)
       end record;
 
       Test_Cases : constant array (1 .. 7) of Test_Vector := [
