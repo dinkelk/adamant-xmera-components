@@ -39,7 +39,7 @@ package body Component.Inertial_3d.Implementation is
          Self.Get_Sigma_Reference (Value => Sigma, Stale_Reference => Arg.Time);
    begin
       if Is_Dep_Status_Success (Sigma_Status) then
-         Set_Sigma_R0_N (
+         Set_Sigma_Rn (
             Self.Alg,
             Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Sigma))
          );
