@@ -60,8 +60,6 @@ package body Component.Attitude_Tracking_Error.Implementation is
             Nav_C : aliased Nav_Att.C.U_C := Nav_Att.C.To_C (Nav_Att.Unpack (Nav));
             Guid : constant Att_Guid.C.U_C := Update (
                Self.Alg,
-               -- TODO, this is unused by algorithm, need to remove from C interface
-               Current_Sim_Nanos => 0,
                Att_Ref_In => Ref_C'Unchecked_Access,
                Att_Nav_In => Nav_C'Unchecked_Access
             );

@@ -5,9 +5,8 @@
 with Interfaces;
 with Nav_Att.C;
 with Att_Guid.C;
-with Vehicle_Config.C;
+with Principal_Inertias.C;
 with Slew_Properties.C;
-with Packed_F32x9.C;
 with Algorithm_Wrapper_Util;
 
 package body Component.Sun_Search.Implementation is
@@ -90,13 +89,9 @@ package body Component.Sun_Search.Implementation is
    --
    -- In this case we need to reset the algorithm with the inertia and configure the slew maneuvers.
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
-      -- Construct vehicle config from spacecraft inertia parameter:
-      Vehicle_Config_C : aliased Vehicle_Config.C.U_C := (
-         Iscpnt_B_B => Packed_F32x9.C.To_C (Self.Spacecraft_Inertia),
-         Co_M_B => [0.0, 0.0, 0.0],  -- Not used by algorithm
-         Mass_Sc => 0.0,  -- Not used by algorithm
-         Current_Adcsstate => 0  -- Not used by algorithm
-      );
+      -- Convert principal inertia parameter to C type for the algorithm:
+      Principal_Inertia_C : aliased Principal_Inertias.C.U_C :=
+         Principal_Inertias.C.To_C (Self.Spacecraft_Inertia);
    begin
       -- Configure the three slew maneuvers first (required before reset):
       if not Self.Slews_Configured then
@@ -125,8 +120,8 @@ package body Component.Sun_Search.Implementation is
          end;
       end if;
 
-      -- Reset algorithm with vehicle configuration:
-      Reset (Self.Alg, Current_Sim_Nanos => 0, Vehicle_Config_In => Vehicle_Config_C'Unchecked_Access);
+      -- Reset algorithm with principal inertia terms:
+      Reset (Self.Alg, Current_Sim_Nanos => 0, Principle_Inertia => Principal_Inertia_C'Unchecked_Access);
    end Update_Parameters_Action;
 
    -- Description:

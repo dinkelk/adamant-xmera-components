@@ -1,5 +1,0 @@
----
-description: Integration tests for the Stepper Motor Controller component.
-tests:
-  - name: Test
-    description: Sweep nominal, bounds, and interrupt cases aligned with the reference Python tests.

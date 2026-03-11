@@ -30,16 +30,14 @@ package Att_Tracking_Error_Algorithm_C is
           External_Name => "AttTrackingErrorAlgorithm_destroy";
 
    --* @brief Run the update step of the attitude tracking error algorithm.
-   --* @param Self              The algorithm instance.
-   --* @param Current_Sim_Nanos Current simulation time (ns).
-   --* @param Att_Ref_In        Pointer to reference-frame message payload.
-   --* @param Att_Nav_In        Pointer to navigation attitude message payload.
+   --* @param Self       The algorithm instance.
+   --* @param Att_Ref_In Pointer to reference-frame message payload.
+   --* @param Att_Nav_In Pointer to navigation attitude message payload.
    --* @return Computed guidance message payload.
    function Update
-     (Self               : Att_Tracking_Error_Algorithm_Access;
-      Current_Sim_Nanos  : Unsigned_64;
-      Att_Ref_In         : Att_Ref.C.U_C_Access;
-      Att_Nav_In         : Nav_Att.C.U_C_Access)
+     (Self       : Att_Tracking_Error_Algorithm_Access;
+      Att_Ref_In : Att_Ref.C.U_C_Access;
+      Att_Nav_In : Nav_Att.C.U_C_Access)
      return Att_Guid.C.U_C
      with Import       => True,
           Convention   => C,

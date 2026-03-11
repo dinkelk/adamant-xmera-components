@@ -1,8 +1,8 @@
 ---
-description: Stepper motor controller algorithm computes commanded motor steps from the reference angle input.
+description: Compares IMU and star tracker body rates and falls back to IMU solution if they disagree.
 execution: passive
 init:
-  description: Initializes the stepper motor controller algorithm.
+  description: Initializes the body rate miscompare algorithm.
 connectors:
   - description: Run the algorithm up to the current time.
     type: Tick.T
@@ -11,8 +11,8 @@ connectors:
     type: Data_Product_Fetch.T
     return_type: Data_Product_Return.T
     kind: request
-  - description: The motor step command output connector
-    type: Motor_Step_Command.T
+  - description: The data product invoker connector
+    type: Data_Product.T
     kind: send
   - description: The parameter update connector.
     type: Parameter_Update.T

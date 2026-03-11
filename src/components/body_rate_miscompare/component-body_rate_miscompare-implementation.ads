@@ -1,32 +1,30 @@
 --------------------------------------------------------------------------------
--- Sun_Search Component Implementation Spec
+-- Body_Rate_Miscompare Component Implementation Spec
 --------------------------------------------------------------------------------
 
 -- Includes:
 with Tick;
-with Parameter_Update;
-with Sun_Search_Algorithm_C; use Sun_Search_Algorithm_C;
+with Body_Rate_Miscompare_Algorithm_C; use Body_Rate_Miscompare_Algorithm_C;
 
--- Sun search algorithm performs autonomous sun acquisition through a series of
--- slew maneuvers.
-package Component.Sun_Search.Implementation is
+-- Compares IMU and star tracker body rates and falls back to IMU solution if they
+-- disagree.
+package Component.Body_Rate_Miscompare.Implementation is
 
    -- The component class instance record:
-   type Instance is new Sun_Search.Base_Instance with private;
+   type Instance is new Body_Rate_Miscompare.Base_Instance with private;
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
-   -- Initializes the sun search algorithm.
+   -- Initializes the body rate miscompare algorithm.
    overriding procedure Init (Self : in out Instance);
    not overriding procedure Destroy (Self : in out Instance);
 
 private
 
    -- The component class instance record:
-   type Instance is new Sun_Search.Base_Instance with record
-      Slews_Configured : Boolean := False;
-      Alg : Sun_Search_Algorithm_Access := null;
+   type Instance is new Body_Rate_Miscompare.Base_Instance with record
+      Alg : Body_Rate_Miscompare_Algorithm_Access := null;
    end record;
 
    ---------------------------------------
@@ -59,7 +57,7 @@ private
    -- Parameter primitives:
    -----------------------------------------------
    -- Description:
-   --    Parameters for the Sun Search component
+   --    Parameters for the Body Rate Miscompare component
 
    -- Invalid parameter handler. This procedure is called when a parameter's type is found to be invalid:
    overriding procedure Invalid_Parameter (Self : in out Instance; Par : in Parameter.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type);
@@ -77,17 +75,14 @@ private
    -- to be implemented here.
    overriding function Validate_Parameters (
       Self : in out Instance;
-      Spacecraft_Inertia : in Principal_Inertias.U;
-      Slew_1_Properties : in Slew_Properties.U;
-      Slew_2_Properties : in Slew_Properties.U;
-      Slew_3_Properties : in Slew_Properties.U
+      Body_Rate_Threshold : in Packed_F32.U
    ) return Parameter_Validation_Status.E is (Parameter_Validation_Status.Valid);
 
    -----------------------------------------------
    -- Data dependency primitives:
    -----------------------------------------------
    -- Description:
-   --    Data dependencies for the Sun Search component.
+   --    Data dependencies for the Body Rate Miscompare component.
    -- Function which retrieves a data dependency.
    -- The default implementation is to simply call the Data_Product_Fetch_T_Request connector. Change the implementation if this component
    -- needs to do something different.
@@ -96,4 +91,4 @@ private
    -- Invalid data dependency handler. This procedure is called when a data dependency's id or length are found to be invalid:
    overriding procedure Invalid_Data_Dependency (Self : in out Instance; Id : in Data_Product_Types.Data_Product_Id; Ret : in Data_Product_Return.T);
 
-end Component.Sun_Search.Implementation;
+end Component.Body_Rate_Miscompare.Implementation;

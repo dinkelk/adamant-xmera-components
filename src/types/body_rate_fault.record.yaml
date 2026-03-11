@@ -1,0 +1,9 @@
+---
+#  /*! @brief Structure used to define the bodyRateMiscompare fault message */
+#  typedef struct {
+#      bool faultDetected;  //!< fault detected bool
+#  } BodyRateFaultMsgPayload;
+fields:
+  - name: Fault_Detected
+    type: Boolean
+    format: E8

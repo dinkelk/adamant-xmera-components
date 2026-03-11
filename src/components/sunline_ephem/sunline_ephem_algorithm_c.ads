@@ -42,7 +42,7 @@ package Sunline_Ephem_Algorithm_C is
      return Nav_Att.C.U_C
      with Import       => True,
           Convention   => C,
-          External_Name => "SunlineEphemAlgorithm_updateState";
+          External_Name => "SunlineEphemAlgorithm_update";
 
 private
 

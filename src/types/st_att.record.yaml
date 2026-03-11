@@ -1,0 +1,18 @@
+---
+#  /*! @brief Output structure for ST attitude measurement in vehicle body frame*/
+#  typedef struct {
+#      float timeTag;          //!< [s] Vehicle time code associated with measurement
+#      float MRP_BdyInrtl[3];  //!< [-] MRP estimate of inertial to body transformation
+#      float omega_BN_B[3];    //!< [rad/s] Platform inertial angular velocity
+#      float dcm_CB[9];        //!< Star Tracker mount frame in the body frame
+#  } STAttMsgF32Payload;
+fields:
+  - name: Time_Tag
+    type: Short_Float
+    format: F32
+  - name: Mrp_Bdy_Inrtl
+    type: Packed_F32x3.T
+  - name: Omega_Bn_B
+    type: Packed_F32x3.T
+  - name: Dcm_Cb
+    type: Packed_F32x9.T

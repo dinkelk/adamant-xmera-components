@@ -1,0 +1,18 @@
+---
+#  /*! Struct containing the translational navigation output produced by the algorithm. */
+#  struct OutputNavTransData {
+#      double timeTag;
+#      Eigen::Vector3d r_BN_N;
+#      Eigen::Vector3d v_BN_N;
+#  };
+fields:
+  - name: Time_Tag
+    type: Long_Float
+    format: F64
+    description: "[s] Time tag"
+  - name: R_Bn_N
+    type: Packed_F64x3.T
+    description: "[m] Current inertial spacecraft position vector in inertial frame N components"
+  - name: V_Bn_N
+    type: Packed_F64x3.T
+    description: "[m/s] Current inertial velocity of the spacecraft in inertial frame N components"

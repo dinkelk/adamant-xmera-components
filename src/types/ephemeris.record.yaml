@@ -1,18 +1,18 @@
 ---
 #  /*! @brief Message structure used to write ephemeris states out to other modules*/
 #  typedef struct {
-#      float r_BdyZero_N[3];  //!< [m] Position of orbital body
-#      float v_BdyZero_N[3];  //!< [m/s] Velocity of orbital body
-#      float sigma_BN[3];     //!< MRP attitude of the orbital body fixed frame relative to inertial
-#      float omega_BN_B[3];   //!< [r/s] angular velocity of the orbital body relative to inertial
-#      float timeTag;         //!< [s] vehicle Time-tag for state
+#      double r_BdyZero_N[3];  //!< [m] Position of orbital body
+#      double v_BdyZero_N[3];  //!< [m/s] Velocity of orbital body
+#      float sigma_BN[3];      //!< MRP attitude of the orbital body fixed frame relative to inertial
+#      float omega_BN_B[3];    //!< [r/s] angular velocity of the orbital body relative to inertial
+#      double timeTag;         //!< [s] vehicle Time-tag for state
 #  } EphemerisMsgF32Payload;
 fields:
   - name: R_Bdy_Zero_N
-    type: Packed_F32x3.T
+    type: Packed_F64x3.T
     description: "[m] Position of orbital body"
   - name: V_Bdy_Zero_N
-    type: Packed_F32x3.T
+    type: Packed_F64x3.T
     description: "[m/s] Velocity of orbital body"
   - name: Sigma_Bn
     type: Packed_F32x3.T
@@ -21,6 +21,6 @@ fields:
     type: Packed_F32x3.T
     description: "[r/s] angular velocity of the orbital body relative to inertial"
   - name: Time_Tag
-    type: Short_Float
-    format: F32
+    type: Long_Float
+    format: F64
     description: "[s] vehicle Time-tag for state"

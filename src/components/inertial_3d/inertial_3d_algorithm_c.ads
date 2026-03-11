@@ -27,24 +27,24 @@ package Inertial_3d_Algorithm_C is
           Convention => C,
           External_Name => "Inertial3DAlgorithm_destroy";
 
-   --* @brief Set the reference MRP vector sigma_R0N.
-   --* @param Self       The algorithm instance.
-   --* @param Sigma_R0_N POD three-vector representing sigma_R0N.
-   procedure Set_Sigma_R0_N
+   --* @brief Set the MRP from inertial frame N to reference frame R.
+   --* @param Self      The algorithm instance.
+   --* @param Sigma_Rn  POD three-vector representing sigma_RN.
+   procedure Set_Sigma_Rn
      (Self : Inertial_3d_Algorithm_Access;
-      Sigma_R0_N : Packed_F32x3_Record.C.U_C)
+      Sigma_Rn : Packed_F32x3_Record.C.U_C)
      with Import => True,
           Convention => C,
-          External_Name => "Inertial3DAlgorithm_setSigmaR0N";
+          External_Name => "Inertial3DAlgorithm_setSigmaRN";
 
-   --* @brief Get the reference MRP vector sigma_R0N.
+   --* @brief Get the MRP from inertial frame N to reference frame R.
    --* @param Self The algorithm instance.
-   --* @return POD three-vector representing sigma_R0N.
-   function Get_Sigma_R0_N (Self : Inertial_3d_Algorithm_Access)
+   --* @return POD three-vector representing sigma_RN.
+   function Get_Sigma_Rn (Self : Inertial_3d_Algorithm_Access)
      return Packed_F32x3_Record.C.U_C
      with Import => True,
           Convention => C,
-          External_Name => "Inertial3DAlgorithm_getSigmaR0N";
+          External_Name => "Inertial3DAlgorithm_getSigmaRN";
 
    --* @brief Compute the inertial attitude reference message.
    --* @param Self The algorithm instance.

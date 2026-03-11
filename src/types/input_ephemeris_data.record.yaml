@@ -1,0 +1,18 @@
+---
+#  /*! Struct containing the ephemeris inputs needed by the algorithm. */
+#  struct InputEphemerisData {
+#      double timeTag;
+#      Eigen::Vector3d r_BdyZero_N;
+#      Eigen::Vector3d v_BdyZero_N;
+#  };
+fields:
+  - name: Time_Tag
+    type: Long_Float
+    format: F64
+    description: "[s] Time tag"
+  - name: R_Bdy_Zero_N
+    type: Packed_F64x3.T
+    description: "[m] Position of orbital body"
+  - name: V_Bdy_Zero_N
+    type: Packed_F64x3.T
+    description: "[m/s] Velocity of orbital body"

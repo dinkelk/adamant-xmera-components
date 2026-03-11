@@ -26,19 +26,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           set-safe-directory: true
-          # Use dinkelk cmake-update fork for now until compilation is fixed for Linux
-          repository: dinkelk/fp32-fsw-xmera
+          repository: lasp/fp32-fsw-xmera
           path: fp32-fsw-xmera
-          ref: cmake-update
+          ref: develop
       - name: Clone adamant repository
         uses: actions/checkout@v4
         with:
           set-safe-directory: true
           repository: lasp/adamant
           path: adamant
-      - name: Clone Eigen 3.4.1 from GitLab
-        run: |
-          git clone --depth 1 --branch 3.4.1 https://gitlab.com/libeigen/eigen.git eigen
+      - name: Clone Eigen with freestanding support
+        uses: actions/checkout@v4
+        with:
+          set-safe-directory: true
+          repository: lasp/eigen
+          path: eigen
+          ref: feature/freestanding
       - name: Run all unit tests and coverage
         run: bash adamant-xmera-components/env/github_run.sh "redo adamant-xmera-components/coverage_all"
       - name: Archive logs for failed unit tests

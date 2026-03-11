@@ -1,6 +1,0 @@
----
-description: Data dependencies for the Stepper Motor Controller component.
-data_dependencies:
-  - name: Motor_Reference_Angle
-    type: Hinged_Rigid_Body.T
-    description: Reference hinged rigid body state that provides the desired motor angle

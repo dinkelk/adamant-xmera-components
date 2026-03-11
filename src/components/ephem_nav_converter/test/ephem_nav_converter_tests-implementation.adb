@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 with Basic_Assertions; use Basic_Assertions;
-with Packed_F32x3.Assertion; use Packed_F32x3.Assertion;
+with Packed_F64x3.Assertion; use Packed_F64x3.Assertion;
 with Ephemeris;
 with Nav_Trans;
 
@@ -70,14 +70,14 @@ package body Ephem_Nav_Converter_Tests.Implementation is
          pragma Assert (Nav_Trans_Out.Time_Tag = Test_Eph.Time_Tag);
 
          -- Verify position was copied correctly (r_BN_N should equal r_BdyZero_N)
-         Packed_F32x3_Assert.Eq (
+         Packed_F64x3_Assert.Eq (
             Nav_Trans_Out.R_Bn_N,
             Test_Eph.R_Bdy_Zero_N,
             Epsilon => 1.0
          );
 
          -- Verify velocity was copied correctly (v_BN_N should equal v_BdyZero_N)
-         Packed_F32x3_Assert.Eq (
+         Packed_F64x3_Assert.Eq (
             Nav_Trans_Out.V_Bn_N,
             Test_Eph.V_Bdy_Zero_N,
             Epsilon => 1.0e-3

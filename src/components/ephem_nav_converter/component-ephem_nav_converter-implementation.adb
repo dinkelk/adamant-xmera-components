@@ -2,8 +2,10 @@
 -- Ephem_Nav_Converter Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Ephemeris.C;
-with Nav_Trans.C;
+with Ephemeris;
+with Nav_Trans;
+with Input_Ephemeris_Data.C;
+with Output_Nav_Trans_Data.C;
 with Algorithm_Wrapper_Util;
 
 package body Component.Ephem_Nav_Converter.Implementation is
@@ -39,16 +41,29 @@ package body Component.Ephem_Nav_Converter.Implementation is
    begin
       if Is_Dep_Status_Success (Eph_Status) then
          declare
-            Eph_C : aliased Ephemeris.C.U_C := Ephemeris.C.To_C (Ephemeris.Unpack (Eph));
-            Nav_Trans_Out : constant Nav_Trans.C.U_C := Update (
+            -- Extract the fields needed by InputEphemerisData from the full Ephemeris message:
+            Eph_U : constant Ephemeris.U := Ephemeris.Unpack (Eph);
+            Eph_In_C : aliased Input_Ephemeris_Data.C.U_C := Input_Ephemeris_Data.C.To_C ((
+               Time_Tag => Eph_U.Time_Tag,
+               R_Bdy_Zero_N => Eph_U.R_Bdy_Zero_N,
+               V_Bdy_Zero_N => Eph_U.V_Bdy_Zero_N
+            ));
+            Nav_Trans_Out_C : constant Output_Nav_Trans_Data.C.U_C := Update (
                Self.Alg,
-               Call_Time => 0, -- Unused by algorithm
-               Ephemeris_In_Msg => Eph_C'Unchecked_Access
+               Ephemeris_In => Eph_In_C'Unchecked_Access
             );
+            -- Convert C output back to Ada unpacked:
+            Nav_Trans_Out : constant Output_Nav_Trans_Data.U := Output_Nav_Trans_Data.C.To_Ada (Nav_Trans_Out_C);
          begin
+            -- Convert OutputNavTransData to Nav_Trans.T, filling in missing fields with defaults:
             Self.Data_Product_T_Send (Self.Data_Products.Navigation_Translation (
                Arg.Time,
-               Nav_Trans.Pack (Nav_Trans.C.To_Ada (Nav_Trans_Out))
+               Nav_Trans.Pack ((
+                  Time_Tag => Nav_Trans_Out.Time_Tag,
+                  R_Bn_N => Nav_Trans_Out.R_Bn_N,
+                  V_Bn_N => Nav_Trans_Out.V_Bn_N,
+                  Vehaccumdv => [0.0, 0.0, 0.0]
+               ))
             ));
          end;
       end if;

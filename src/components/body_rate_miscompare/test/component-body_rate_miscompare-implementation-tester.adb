@@ -1,11 +1,11 @@
 --------------------------------------------------------------------------------
--- Stepper_Motor_Controller Component Tester Body
+-- Body_Rate_Miscompare Component Tester Body
 --------------------------------------------------------------------------------
 
 -- Includes:
 with Parameter;
 
-package body Component.Stepper_Motor_Controller.Implementation.Tester is
+package body Component.Body_Rate_Miscompare.Implementation.Tester is
 
    ---------------------------------------
    -- Initialize heap variables:
@@ -15,7 +15,10 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
       -- Initialize tester heap:
       -- Connector histories:
       Self.Data_Product_Fetch_T_Service_History.Init (Depth => 100);
-      Self.Motor_Step_Command_T_Recv_Sync_History.Init (Depth => 100);
+      Self.Data_Product_T_Recv_Sync_History.Init (Depth => 100);
+      -- Data product histories:
+      Self.Body_Rate_History.Init (Depth => 100);
+      Self.Rate_Fault_Status_History.Init (Depth => 100);
    end Init_Base;
 
    procedure Final_Base (Self : in out Instance) is
@@ -23,7 +26,10 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
       -- Destroy tester heap:
       -- Connector histories:
       Self.Data_Product_Fetch_T_Service_History.Destroy;
-      Self.Motor_Step_Command_T_Recv_Sync_History.Destroy;
+      Self.Data_Product_T_Recv_Sync_History.Destroy;
+      -- Data product histories:
+      Self.Body_Rate_History.Destroy;
+      Self.Rate_Fault_Status_History.Destroy;
    end Final_Base;
 
    ---------------------------------------
@@ -32,7 +38,7 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
    procedure Connect (Self : in out Instance) is
    begin
       Self.Component_Instance.Attach_Data_Product_Fetch_T_Request (To_Component => Self'Unchecked_Access, Hook => Self.Data_Product_Fetch_T_Service_Access);
-      Self.Component_Instance.Attach_Motor_Step_Command_T_Send (To_Component => Self'Unchecked_Access, Hook => Self.Motor_Step_Command_T_Recv_Sync_Access);
+      Self.Component_Instance.Attach_Data_Product_T_Send (To_Component => Self'Unchecked_Access, Hook => Self.Data_Product_T_Recv_Sync_Access);
       Self.Attach_Tick_T_Send (To_Component => Self.Component_Instance'Unchecked_Access, Hook => Self.Component_Instance.Tick_T_Recv_Sync_Access);
       Self.Attach_Parameter_Update_T_Provide (To_Component => Self.Component_Instance'Unchecked_Access, Hook => Self.Component_Instance.Parameter_Update_T_Modify_Access);
    end Connect;
@@ -46,18 +52,38 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
       -- the ID requested.
       Id_To_Return : Data_Product_Types.Data_Product_Id := Self.Data_Dependency_Return_Id_Override;
       Length_To_Return : Data_Product_Types.Data_Product_Buffer_Length_Type := Self.Data_Dependency_Return_Length_Override;
-      Return_Status : constant Data_Product_Enums.Fetch_Status.E := Self.Data_Dependency_Return_Status_Override;
+      Return_Status : Data_Product_Enums.Fetch_Status.E := Self.Data_Dependency_Return_Status_Override;
       Buffer_To_Return : Data_Product_Types.Data_Product_Buffer_Type;
       Time_To_Return : Sys_Time.T := Self.Data_Dependency_Timestamp_Override;
    begin
       -- Determine return data product ID:
       if Id_To_Return = 0 then
-         Id_To_Return := Arg.Id;
+         case Arg.Id is
+            -- ID for Imu_Body:
+            when 0 => Id_To_Return := 0;
+            -- ID for Star_Tracker_Attitude:
+            when 1 => Id_To_Return := 1;
+            -- If ID can not be found, then return ID out of range error.
+            when others =>
+               if Return_Status = Data_Product_Enums.Fetch_Status.Success then
+                  Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;
+               end if;
+         end case;
       end if;
 
       -- Determine return data product length:
       if Length_To_Return = 0 then
-         Length_To_Return := Hinged_Rigid_Body.Size_In_Bytes;
+         case Arg.Id is
+            -- Length for Imu_Body:
+            when 0 => Length_To_Return := Imu_Sensor_Body.Size_In_Bytes;
+            -- Length for Star_Tracker_Attitude:
+            when 1 => Length_To_Return := St_Att.Size_In_Bytes;
+            -- If ID can not be found, then return ID out of range error.
+            when others =>
+               if Return_Status = Data_Product_Enums.Fetch_Status.Success then
+                  Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;
+               end if;
+         end case;
       end if;
 
       -- Determine return timestamp:
@@ -67,8 +93,19 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
 
       -- Fill the data product buffer:
       if Return_Status = Data_Product_Enums.Fetch_Status.Success then
-         Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Hinged_Rigid_Body.Size_In_Bytes - 1) :=
-            Hinged_Rigid_Body.Serialization.To_Byte_Array (Self.Motor_Reference_Angle);
+         case Arg.Id is
+            -- Length for Imu_Body:
+            when 0 =>
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Imu_Sensor_Body.Size_In_Bytes - 1) :=
+                  Imu_Sensor_Body.Serialization.To_Byte_Array (Self.Imu_Body);
+            -- Length for Star_Tracker_Attitude:
+            when 1 =>
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + St_Att.Size_In_Bytes - 1) :=
+                  St_Att.Serialization.To_Byte_Array (Self.Star_Tracker_Attitude);
+            -- Do not fill. The ID is not recognized.
+            when others =>
+               Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;
+         end case;
       end if;
 
       -- Return the data product with the status:
@@ -97,12 +134,34 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
       return To_Return;
    end Data_Product_Fetch_T_Service;
 
-   -- The motor step command output connector
-   overriding procedure Motor_Step_Command_T_Recv_Sync (Self : in out Instance; Arg : in Motor_Step_Command.T) is
+   -- The data product invoker connector
+   overriding procedure Data_Product_T_Recv_Sync (Self : in out Instance; Arg : in Data_Product.T) is
    begin
       -- Push the argument onto the test history for looking at later:
-      Self.Motor_Step_Command_T_Recv_Sync_History.Push (Arg);
-   end Motor_Step_Command_T_Recv_Sync;
+      Self.Data_Product_T_Recv_Sync_History.Push (Arg);
+      -- Dispatch the data product to the correct handler:
+      Self.Dispatch_Data_Product (Arg);
+   end Data_Product_T_Recv_Sync;
+
+   -----------------------------------------------
+   -- Data product handler primitive:
+   -----------------------------------------------
+   -- Description:
+   --    Data products for the Body Rate Miscompare component.
+   -- Selected body rate output (star tracker rate if rates agree, IMU rate if they
+   -- disagree)
+   overriding procedure Body_Rate (Self : in out Instance; Arg : in Nav_Att.T) is
+   begin
+      -- Push the argument onto the test history for looking at later:
+      Self.Body_Rate_History.Push (Arg);
+   end Body_Rate;
+
+   -- Body rate fault detection status
+   overriding procedure Rate_Fault_Status (Self : in out Instance; Arg : in Body_Rate_Fault.T) is
+   begin
+      -- Push the argument onto the test history for looking at later:
+      Self.Rate_Fault_Status_History.Push (Arg);
+   end Rate_Fault_Status;
 
    -----------------------------------------------
    -- Special primitives for aiding in the staging,
@@ -167,4 +226,4 @@ package body Component.Stepper_Motor_Controller.Implementation.Tester is
       return Param_Update.Status;
    end Update_Parameters;
 
-end Component.Stepper_Motor_Controller.Implementation.Tester;
+end Component.Body_Rate_Miscompare.Implementation.Tester;

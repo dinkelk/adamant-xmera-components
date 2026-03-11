@@ -5,6 +5,7 @@
 with Basic_Assertions; use Basic_Assertions;
 with Packed_F32x3;
 with Packed_F32x3.Assertion; use Packed_F32x3.Assertion;
+with Packed_F64x3.Assertion; use Packed_F64x3.Assertion;
 with Nav_Att;
 with Nav_Trans;
 
@@ -128,9 +129,9 @@ package body Nav_Aggregate_Tests.Implementation is
          -- Time tag from message 1
          pragma Assert (abs (Output.Time_Tag - 22.2) < 0.01);
          -- Position from message 1
-         Packed_F32x3_Assert.Eq (Output.R_Bn_N, [2000.0, 200.0, -2000.0], Epsilon => 0.1);
+         Packed_F64x3_Assert.Eq (Output.R_Bn_N, [2000.0, 200.0, -2000.0], Epsilon => 0.1);
          -- Velocity from message 1
-         Packed_F32x3_Assert.Eq (Output.V_Bn_N, [2.0, 2.0, -2.0], Epsilon => 0.0001);
+         Packed_F64x3_Assert.Eq (Output.V_Bn_N, [2.0, 2.0, -2.0], Epsilon => 0.0001);
          -- Accumulated DV from message 1
          Packed_F32x3_Assert.Eq (Output.Vehaccumdv, [-20.2, 20.2, 20.2], Epsilon => 0.1);
       end;
@@ -191,9 +192,9 @@ package body Nav_Aggregate_Tests.Implementation is
          -- Time tag from message 0
          pragma Assert (abs (Output.Time_Tag - 11.1) < 0.01);
          -- Position from message 0
-         Packed_F32x3_Assert.Eq (Output.R_Bn_N, [1000.0, 100.0, -1000.0], Epsilon => 0.1);
+         Packed_F64x3_Assert.Eq (Output.R_Bn_N, [1000.0, 100.0, -1000.0], Epsilon => 0.1);
          -- Velocity from message 0
-         Packed_F32x3_Assert.Eq (Output.V_Bn_N, [1.0, 1.0, -1.0], Epsilon => 0.0001);
+         Packed_F64x3_Assert.Eq (Output.V_Bn_N, [1.0, 1.0, -1.0], Epsilon => 0.0001);
          -- Accumulated DV from message 0
          Packed_F32x3_Assert.Eq (Output.Vehaccumdv, [-10.1, 10.1, 10.1], Epsilon => 0.1);
       end;
@@ -244,7 +245,7 @@ package body Nav_Aggregate_Tests.Implementation is
          Output : constant Nav_Trans.T := T.Aggregated_Nav_Trans_History.Get (3);
       begin
          pragma Assert (abs (Output.Time_Tag - 11.1) < 0.01);
-         Packed_F32x3_Assert.Eq (Output.R_Bn_N, [1000.0, 100.0, -1000.0], Epsilon => 0.1);
+         Packed_F64x3_Assert.Eq (Output.R_Bn_N, [1000.0, 100.0, -1000.0], Epsilon => 0.1);
       end;
 
       -- Destroy before next test
@@ -296,8 +297,8 @@ package body Nav_Aggregate_Tests.Implementation is
          Output : constant Nav_Trans.T := T.Aggregated_Nav_Trans_History.Get (4);
       begin
          pragma Assert (abs (Output.Time_Tag - 22.2) < 0.01);
-         Packed_F32x3_Assert.Eq (Output.R_Bn_N, [2000.0, 200.0, -2000.0], Epsilon => 0.1);
-         Packed_F32x3_Assert.Eq (Output.V_Bn_N, [2.0, 2.0, -2.0], Epsilon => 0.0001);
+         Packed_F64x3_Assert.Eq (Output.R_Bn_N, [2000.0, 200.0, -2000.0], Epsilon => 0.1);
+         Packed_F64x3_Assert.Eq (Output.V_Bn_N, [2.0, 2.0, -2.0], Epsilon => 0.0001);
          Packed_F32x3_Assert.Eq (Output.Vehaccumdv, [-20.2, 20.2, 20.2], Epsilon => 0.1);
       end;
 

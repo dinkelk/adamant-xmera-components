@@ -4,8 +4,8 @@ pragma Style_Checks (Off);
 pragma Warnings (Off, "-gnatwu");
 
 with Interfaces.C; use Interfaces; use Interfaces.C;
-with Ephemeris.C;
-with Nav_Trans.C;
+with Input_Ephemeris_Data.C;
+with Output_Nav_Trans_Data.C;
 
 package Ephem_Nav_Converter_Algorithm_C is
 
@@ -29,14 +29,12 @@ package Ephem_Nav_Converter_Algorithm_C is
 
    --* @brief Convert ephemeris message to navigation translation message.
    --* @param Self             The algorithm instance.
-   --* @param Call_Time        Timestamp for the update call.
-   --* @param Ephemeris_In_Msg Pointer to ephemeris message payload.
-   --* @return Navigation translation message.
+   --* @param Ephemeris_In     Pointer to ephemeris input data.
+   --* @return Navigation translation output data.
    function Update
-     (Self             : Ephem_Nav_Converter_Algorithm_Access;
-      Call_Time        : Unsigned_64;
-      Ephemeris_In_Msg : Ephemeris.C.U_C_Access)
-     return Nav_Trans.C.U_C
+     (Self         : Ephem_Nav_Converter_Algorithm_Access;
+      Ephemeris_In : Input_Ephemeris_Data.C.U_C_Access)
+     return Output_Nav_Trans_Data.C.U_C
      with Import       => True,
           Convention   => C,
           External_Name => "EphemNavConverterAlgorithm_update";

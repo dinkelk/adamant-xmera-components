@@ -1,0 +1,7 @@
+---
+description: Parameters for the Body Rate Miscompare component
+parameters:
+  - name: Body_Rate_Threshold
+    description: "[rad/s] Threshold for body rate disagreement between IMU and star tracker"
+    type: Packed_F32.T
+    default: "(Value => 1.0)"

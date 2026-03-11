@@ -1,12 +1,12 @@
 --------------------------------------------------------------------------------
--- Stepper_Motor_Controller Tests Spec
+-- Body_Rate_Miscompare Tests Spec
 --------------------------------------------------------------------------------
 
--- Integration tests for the Stepper Motor Controller component.
-package Stepper_Motor_Controller_Tests.Implementation is
+-- This is a unit test suite for the Body Rate Miscompare component
+package Body_Rate_Miscompare_Tests.Implementation is
 
    -- Test data and state:
-   type Instance is new Stepper_Motor_Controller_Tests.Base_Instance with private;
+   type Instance is new Body_Rate_Miscompare_Tests.Base_Instance with private;
    type Class_Access is access all Instance'Class;
 
 private
@@ -14,11 +14,11 @@ private
    overriding procedure Set_Up_Test (Self : in out Instance);
    overriding procedure Tear_Down_Test (Self : in out Instance);
 
-   -- Validate motor step command output against reference Python scenarios.
+   -- Run algorithm to ensure integration is sound.
    overriding procedure Test (Self : in out Instance);
 
    -- Test data and state:
-   type Instance is new Stepper_Motor_Controller_Tests.Base_Instance with record
+   type Instance is new Body_Rate_Miscompare_Tests.Base_Instance with record
       null;
    end record;
-end Stepper_Motor_Controller_Tests.Implementation;
+end Body_Rate_Miscompare_Tests.Implementation;

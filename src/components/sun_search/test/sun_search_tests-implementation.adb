@@ -5,7 +5,7 @@
 with Basic_Assertions; use Basic_Assertions;
 with Ada.Numerics.Generic_Elementary_Functions;
 with Ada.Text_IO;
-with Packed_F32x9;
+with Principal_Inertias;
 with Slew_Properties;
 with Att_Guid;
 with Sun_Search_Parameters;
@@ -94,10 +94,12 @@ package body Sun_Search_Tests.Implementation is
       Params : Sun_Search_Parameters.Instance;
 
       -- Test data from Python test
-      -- Inertia matrix (diagonal elements): [100, 200, 300]
-      Inertia : constant Packed_F32x9.T := [100.0, 0.0, 0.0,
-                                             0.0, 200.0, 0.0,
-                                             0.0, 0.0, 300.0];
+      -- Principal inertia terms: [100, 200, 300]
+      Inertia : constant Principal_Inertias.T := (
+         Ixx_Pnt_B_B => 100.0,
+         Iyy_Pnt_B_B => 200.0,
+         Izz_Pnt_B_B => 300.0
+      );
 
       -- Slew properties matching Python test
       Pi : constant Short_Float := 3.141592653589793;
@@ -233,7 +235,7 @@ package body Sun_Search_Tests.Implementation is
       begin
          -- Set fresh data dependency
          T.Spacecraft_Attitude := (
-            Time_Tag => Slew1_Mid_Time,
+            Time_Tag => Long_Float (Slew1_Mid_Time),
             Sigma_Bn => [0.0, 0.0, 0.0],
             Omega_Bn_B => [0.0, 0.0, 0.0],
             Veh_Sun_Pnt_Bdy => [1.0, 0.0, 0.0]
@@ -261,7 +263,7 @@ package body Sun_Search_Tests.Implementation is
       begin
          -- Set fresh data dependency
          T.Spacecraft_Attitude := (
-            Time_Tag => T_Test,
+            Time_Tag => Long_Float (T_Test),
             Sigma_Bn => [0.0, 0.0, 0.0],
             Omega_Bn_B => [0.0, 0.0, 0.0],
             Veh_Sun_Pnt_Bdy => [1.0, 0.0, 0.0]
@@ -291,7 +293,7 @@ package body Sun_Search_Tests.Implementation is
       begin
          -- Set fresh data dependency
          T.Spacecraft_Attitude := (
-            Time_Tag => T_Test,
+            Time_Tag => Long_Float (T_Test),
             Sigma_Bn => [0.0, 0.0, 0.0],
             Omega_Bn_B => [0.0, 0.0, 0.0],
             Veh_Sun_Pnt_Bdy => [1.0, 0.0, 0.0]
@@ -321,7 +323,7 @@ package body Sun_Search_Tests.Implementation is
       begin
          -- Set fresh data dependency
          T.Spacecraft_Attitude := (
-            Time_Tag => T_Test,
+            Time_Tag => Long_Float (T_Test),
             Sigma_Bn => [0.0, 0.0, 0.0],
             Omega_Bn_B => [0.0, 0.0, 0.0],
             Veh_Sun_Pnt_Bdy => [1.0, 0.0, 0.0]
