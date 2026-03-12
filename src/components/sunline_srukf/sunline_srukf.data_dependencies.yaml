@@ -1,0 +1,6 @@
+---
+description: Data dependencies for the Sunline SRuKF component.
+data_dependencies:
+  - name: Spacecraft_Attitude
+    type: Nav_Att.T
+    description: Spacecraft attitude navigation state (sigma_BN, omega_BN_B, vehSunPntBdy, timeTag)
