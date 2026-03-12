@@ -1,0 +1,8 @@
+---
+#  Thruster force command for an 8-thruster system.
+#  Derived from ThrFiringRemainderForceCmd (36-element C API)
+#  reduced to match the actual system thruster count.
+fields:
+  - name: Thr_Force
+    type: Packed_F32x8.T
+    description: "[N] Thruster force values (8 thrusters)"

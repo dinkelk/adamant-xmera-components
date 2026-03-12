@@ -1,0 +1,8 @@
+---
+#  Thruster on-time command for an 8-thruster system.
+#  Derived from ThrFiringRemainderOnTimeCmd (36-element C API)
+#  reduced to match the actual system thruster count.
+fields:
+  - name: On_Time_Request
+    type: Packed_F32x8.T
+    description: "[s] Thruster on-time requests (8 thrusters)"
