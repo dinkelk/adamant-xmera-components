@@ -1,0 +1,11 @@
+---
+description: Parameters for the Inertial UKF component.
+parameters:
+  - name: Rw_Array_Config
+    description: "[-] Reaction wheel array configuration (number of active wheels)"
+    type: Rw_Array_Config_Input.T
+    default: "(Num_Rw => 0)"
+  - name: Vehicle_Config
+    description: "[kg*m^2, kg] Vehicle configuration: inertia tensor (column-major 3x3) and spacecraft mass"
+    type: Vehicle_Config_Input.T
+    default: "(Iscpnt_B_B => [others => 0.0], Mass_Sc => 0.0)"
