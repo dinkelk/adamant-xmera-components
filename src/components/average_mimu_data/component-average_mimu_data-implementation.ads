@@ -1,0 +1,101 @@
+--------------------------------------------------------------------------------
+-- Average_Mimu_Data Component Implementation Spec
+--------------------------------------------------------------------------------
+
+-- Includes:
+with Mimu_Raw_Packet;
+with Tick;
+with Parameter_Update;
+with Average_Mimu_Data_Algorithm_C; use Average_Mimu_Data_Algorithm_C;
+
+-- Averages MIMU accelerometer and gyro data within a configurable time window and
+-- transforms to the spacecraft body frame.
+package Component.Average_Mimu_Data.Implementation is
+
+   -- The component class instance record:
+   type Instance is new Average_Mimu_Data.Base_Instance with private;
+
+   --------------------------------------------------
+   -- Subprogram for implementation init method:
+   --------------------------------------------------
+   -- Initializes the AverageMimuData algorithm.
+   overriding procedure Init (Self : in out Instance);
+   not overriding procedure Destroy (Self : in out Instance);
+
+private
+
+   -- Maximum number of raw packets to buffer between ticks:
+   Max_Buffered_Packets : constant := 4;
+
+   -- Raw packet buffer type:
+   type Packet_Buffer_Array is array (0 .. Max_Buffered_Packets - 1) of Mimu_Raw_Packet.T;
+
+   -- The component class instance record:
+   type Instance is new Average_Mimu_Data.Base_Instance with record
+      Alg : Average_Mimu_Data_Algorithm_Access := null;
+      -- Raw packet ring buffer:
+      Packets : Packet_Buffer_Array := [others => (others => <>)];
+      -- Number of packets currently stored (0 .. Max_Buffered_Packets):
+      Packet_Count : Natural := 0;
+   end record;
+
+   ---------------------------------------
+   -- Set Up Procedure
+   ---------------------------------------
+   -- Null method which can be implemented to provide some component
+   -- set up code. This method is generally called by the assembly
+   -- main.adb after all component initialization and tasks have been started.
+   -- Some activities need to only be run once at startup, but cannot be run
+   -- safely until everything is up and running, i.e. command registration, initial
+   -- data product updates. This procedure should be implemented to do these things
+   -- if necessary.
+   overriding procedure Set_Up (Self : in out Instance) is null;
+
+   ---------------------------------------
+   -- Invokee connector primitives:
+   ---------------------------------------
+   -- Receive raw MIMU data packet and buffer for later processing.
+   overriding procedure Mimu_Raw_Packet_T_Recv_Sync (Self : in out Instance; Arg : in Mimu_Raw_Packet.T);
+   -- Tick that triggers the averaging algorithm over buffered samples and publishes
+   -- the result.
+   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
+   -- The parameter update connector.
+   overriding procedure Parameter_Update_T_Modify (Self : in out Instance; Arg : in out Parameter_Update.T);
+
+   ---------------------------------------
+   -- Invoker connector primitives:
+   ---------------------------------------
+   -- This procedure is called when a Event_T_Send message is dropped due to a full queue.
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;
+   -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
+   overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;
+
+   -----------------------------------------------
+   -- Parameter primitives:
+   -----------------------------------------------
+   -- Description:
+   --    Parameters for the Average Mimu Data component
+
+   -- Invalid parameter handler. This procedure is called when a parameter's type is found to be invalid:
+   overriding procedure Invalid_Parameter (Self : in out Instance; Par : in Parameter.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type);
+   -- This procedure is called when the parameters of a component have been updated. The default implementation of this
+   -- subprogram in the implementation package is a null procedure. However, this procedure can, and should be implemented if
+   -- something special needs to happen after a parameter update. Examples of this might be copying certain parameters to
+   -- hardware registers, or performing other special functionality that only needs to be performed after parameters have
+   -- been updated.
+   overriding procedure Update_Parameters_Action (Self : in out Instance);
+   -- This function is called when the parameter operation type is "Validate". The default implementation of this
+   -- subprogram in the implementation package is a function that returns "Valid". However, this function can, and should be
+   -- overridden if something special needs to happen to further validate a parameter. Examples of this might be validation of
+   -- certain parameters beyond individual type ranges, or performing other special functionality that only needs to be
+   -- performed after parameters have been validated. Note that range checking is performed during staging, and does not need
+   -- to be implemented here.
+   overriding function Validate_Parameters (
+      Self : in out Instance;
+      Time_Delta : in Packed_F32.U;
+      Dcm_Pltf_To_Bdy : in Packed_F32x9.U;
+      Gyro_Scale : in Packed_F32.U;
+      Accel_Scale : in Packed_F32.U
+   ) return Parameter_Validation_Status.E is (Parameter_Validation_Status.Valid);
+
+end Component.Average_Mimu_Data.Implementation;
