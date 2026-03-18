@@ -1,0 +1,9 @@
+---
+description: Averaged IMU acceleration and angular velocity in the spacecraft body frame.
+fields:
+  - name: Accel_Body
+    type: Packed_F32x3.T
+    description: "[m/s2] Averaged apparent acceleration in body frame"
+  - name: Ang_Vel_Body
+    type: Packed_F32x3.T
+    description: "[r/s] Averaged angular velocity in body frame"

@@ -1,0 +1,13 @@
+---
+description: Record for the DPU Interface MIMU telemetry packet data sample structure.
+fields:
+  - name: Merged_Gyro_Rates
+    description: The 'Merged Gyro Rates' field contains angular rate measurements about each of the three principle axes of the CHU as detected by the MIMU. The four IMU sensors are here calibrated and merged.
+    type: Merged_Chu_Measurements.T
+  - name: Merged_Accelerations
+    description: The 'Merged Accelerations' field contains acceleration measurements in the direction of each of the three principle axes of the CHU as detected by the MIMU. The four IMU sensors are here calibrated and merged.
+    type: Merged_Chu_Measurements.T
+  - name: Merge_Info
+    description: Merging information describing the sensors usage for generating the given merged sample solution.
+    type: Interfaces.Unsigned_16
+    format: U16
