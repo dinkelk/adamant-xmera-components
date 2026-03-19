@@ -11,9 +11,6 @@ package body Component.Average_Mimu_Data.Implementation is
    -- Inter-sample period in nanoseconds (10 ms):
    Sample_Period_Ns : constant Interfaces.Unsigned_64 := 10_000_000;
 
-   -- Number of raw samples per packet:
-   Num_Samples : constant := 10;
-
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
@@ -42,8 +39,32 @@ package body Component.Average_Mimu_Data.Implementation is
          -- Buffer full, drop the incoming packet.
          Self.Event_T_Send_If_Connected (Self.Events.Packet_Buffer_Overflow (Self.Sys_Time_T_Get));
       else
-         Self.Packets (Self.Packet_Count) := Arg;
-         Self.Packet_Count := Self.Packet_Count + 1;
+         -- Convert raw packet to float samples and store in pre-converted buffer:
+         declare
+            Base_Time_Ns : constant Interfaces.Unsigned_64 :=
+               Interfaces.Unsigned_64 (Arg.Timestamp.Seconds) * 1_000_000_000 +
+               Interfaces.Unsigned_64 (Arg.Timestamp.Subseconds) * 1_000_000_000 / 65_536;
+
+            Samples : constant Mimu_Data_Field_Sample_10.U :=
+               Mimu_Data_Field_Sample_10.Unpack (Arg.Samples);
+
+            Idx : constant Natural := Self.Packet_Count;
+         begin
+            for I in 0 .. Samples_Per_Packet - 1 loop
+               Self.Buffer (Idx).Meas_Time (I) := Base_Time_Ns + Interfaces.Unsigned_64 (I) * Sample_Period_Ns;
+               Self.Buffer (Idx).Gyro_P (I) := [
+                  Short_Float (Samples (I).Merged_Gyro_Rates.X_Measurement) * Self.Gyro_Scale.Value,
+                  Short_Float (Samples (I).Merged_Gyro_Rates.Y_Measurement) * Self.Gyro_Scale.Value,
+                  Short_Float (Samples (I).Merged_Gyro_Rates.Z_Measurement) * Self.Gyro_Scale.Value
+               ];
+               Self.Buffer (Idx).Accel_P (I) := [
+                  Short_Float (Samples (I).Merged_Accelerations.X_Measurement) * Self.Accel_Scale.Value,
+                  Short_Float (Samples (I).Merged_Accelerations.Y_Measurement) * Self.Accel_Scale.Value,
+                  Short_Float (Samples (I).Merged_Accelerations.Z_Measurement) * Self.Accel_Scale.Value
+               ];
+            end loop;
+            Self.Packet_Count := Idx + 1;
+         end;
       end if;
    end Mimu_Raw_Packet_T_Recv_Sync;
 
@@ -58,8 +79,9 @@ package body Component.Average_Mimu_Data.Implementation is
       end if;
 
       declare
-         -- Build 120-element InputPktsData_c. Zero-initialized so unused
-         -- slots have measTime=0, which the time-window filter excludes.
+         -- Build 120-element InputPktsData_c from pre-converted buffer.
+         -- Zero-initialized so unused slots have measTime=0, which the
+         -- time-window filter excludes.
          Input : aliased Input_Pkts_Data_C := (
             Meas_Time => [others => 0],
             Gyro_P    => [others => [others => 0.0]],
@@ -67,33 +89,14 @@ package body Component.Average_Mimu_Data.Implementation is
          );
          Offset : Natural := 0;
       begin
-         -- Convert all buffered raw packets into the algorithm input buffer:
+         -- Copy pre-converted samples into the algorithm input buffer:
          for P in 0 .. Self.Packet_Count - 1 loop
-            declare
-               Pkt : Mimu_Raw_Packet.T renames Self.Packets (P);
-
-               Base_Time_Ns : constant Interfaces.Unsigned_64 :=
-                  Interfaces.Unsigned_64 (Pkt.Timestamp.Seconds) * 1_000_000_000 +
-                  Interfaces.Unsigned_64 (Pkt.Timestamp.Subseconds) * 1_000_000_000 / 65_536;
-
-               Samples : constant Mimu_Data_Field_Sample_10.U :=
-                  Mimu_Data_Field_Sample_10.Unpack (Pkt.Samples);
-            begin
-               for I in 0 .. Num_Samples - 1 loop
-                  Input.Meas_Time (Offset + I) := Base_Time_Ns + Interfaces.Unsigned_64 (I) * Sample_Period_Ns;
-                  Input.Gyro_P (Offset + I) := [
-                     Short_Float (Samples (I).Merged_Gyro_Rates.X_Measurement) * Self.Gyro_Scale.Value,
-                     Short_Float (Samples (I).Merged_Gyro_Rates.Y_Measurement) * Self.Gyro_Scale.Value,
-                     Short_Float (Samples (I).Merged_Gyro_Rates.Z_Measurement) * Self.Gyro_Scale.Value
-                  ];
-                  Input.Accel_P (Offset + I) := [
-                     Short_Float (Samples (I).Merged_Accelerations.X_Measurement) * Self.Accel_Scale.Value,
-                     Short_Float (Samples (I).Merged_Accelerations.Y_Measurement) * Self.Accel_Scale.Value,
-                     Short_Float (Samples (I).Merged_Accelerations.Z_Measurement) * Self.Accel_Scale.Value
-                  ];
-               end loop;
-               Offset := Offset + Num_Samples;
-            end;
+            for I in 0 .. Samples_Per_Packet - 1 loop
+               Input.Meas_Time (Offset + I) := Self.Buffer (P).Meas_Time (I);
+               Input.Gyro_P (Offset + I) := Self.Buffer (P).Gyro_P (I);
+               Input.Accel_P (Offset + I) := Self.Buffer (P).Accel_P (I);
+            end loop;
+            Offset := Offset + Samples_Per_Packet;
          end loop;
 
          declare

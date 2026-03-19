@@ -24,17 +24,29 @@ package Component.Average_Mimu_Data.Implementation is
 
 private
 
-   -- Maximum number of raw packets to buffer between ticks:
+   -- Maximum number of packets to buffer between ticks:
    Max_Buffered_Packets : constant := 4;
 
-   -- Raw packet buffer type:
-   type Packet_Buffer_Array is array (0 .. Max_Buffered_Packets - 1) of Mimu_Raw_Packet.T;
+   -- Number of raw samples per packet:
+   Samples_Per_Packet : constant := 10;
+
+   -- Pre-converted sample data for a single packet (10 samples deep):
+   type Packet_Meas_Time_Array is array (0 .. Samples_Per_Packet - 1) of Interfaces.Unsigned_64;
+   type Packet_Vector3f_Array is array (0 .. Samples_Per_Packet - 1) of Vector3f_C;
+
+   type Converted_Packet_Data is record
+      Meas_Time : Packet_Meas_Time_Array := [others => 0];
+      Gyro_P    : Packet_Vector3f_Array := [others => [others => 0.0]];
+      Accel_P   : Packet_Vector3f_Array := [others => [others => 0.0]];
+   end record;
+
+   type Converted_Buffer_Array is array (0 .. Max_Buffered_Packets - 1) of Converted_Packet_Data;
 
    -- The component class instance record:
    type Instance is new Average_Mimu_Data.Base_Instance with record
       Alg : Average_Mimu_Data_Algorithm_Access := null;
-      -- Raw packet ring buffer:
-      Packets : Packet_Buffer_Array := [others => (others => <>)];
+      -- Pre-converted sample buffer, populated on recv, consumed on tick:
+      Buffer : Converted_Buffer_Array := [others => (others => <>)];
       -- Number of packets currently stored (0 .. Max_Buffered_Packets):
       Packet_Count : Natural := 0;
    end record;
