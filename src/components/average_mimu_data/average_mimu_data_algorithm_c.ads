@@ -5,8 +5,11 @@ pragma Warnings     (Off, "-gnatwu");
 
 with Interfaces.C; use Interfaces; use Interfaces.C;
 with Packed_F32x9_Record.C;
+with Averaged_Imu_Data.C;
 
 package Average_Mimu_Data_Algorithm_C is
+
+   --* TODO: This algorithm is in flux, these types will change or go away entirely
 
    --* Opaque handle for an AverageMimuDataAlgorithm instance.
    type Average_Mimu_Data_Algorithm is limited private;
@@ -35,13 +38,6 @@ package Average_Mimu_Data_Algorithm_C is
    end record
       with Convention => C_Pass_By_Copy;
    type Input_Pkts_Data_C_Access is access all Input_Pkts_Data_C;
-
-   --* POD output matching C OutputAverageAccelAngleVel_c.
-   type Output_Average_Accel_Angle_Vel_C is record
-      Accel_B      : Vector3f_C;
-      Gyro_Omega_B : Vector3f_C;
-   end record
-      with Convention => C_Pass_By_Copy;
 
    --* @brief Get the MAX_BUF_PKT constant for Ada validation.
    --* @return The maximum buffer packet count (MAX_BUF_PKT_C).
@@ -75,7 +71,7 @@ package Average_Mimu_Data_Algorithm_C is
    function Update
      (Self  : Average_Mimu_Data_Algorithm_Access;
       Input : Input_Pkts_Data_C_Access)
-     return Output_Average_Accel_Angle_Vel_C
+     return Averaged_Imu_Data.C.U_C
      with Import       => True,
           Convention   => C,
           External_Name => "AverageMimuDataAlgorithm_update";

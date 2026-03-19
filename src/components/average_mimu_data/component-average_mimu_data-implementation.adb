@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 with Mimu_Data_Field_Sample_10;
-with Averaged_Imu_Data;
+with Averaged_Imu_Data.C;
 with Packed_F32x9.C;
 
 package body Component.Average_Mimu_Data.Implementation is
@@ -100,19 +100,12 @@ package body Component.Average_Mimu_Data.Implementation is
          end loop;
 
          declare
-            Output : constant Output_Average_Accel_Angle_Vel_C :=
+            Output : constant Averaged_Imu_Data.C.U_C :=
                Update (Self.Alg, Input'Unchecked_Access);
          begin
             Self.Data_Product_T_Send (Self.Data_Products.Imu_Body_Data (
                Self.Sys_Time_T_Get,
-               Averaged_Imu_Data.Pack ((
-                  Accel_Body   => [Output.Accel_B (0),
-                                   Output.Accel_B (1),
-                                   Output.Accel_B (2)],
-                  Ang_Vel_Body => [Output.Gyro_Omega_B (0),
-                                   Output.Gyro_Omega_B (1),
-                                   Output.Gyro_Omega_B (2)]
-               ))
+               Averaged_Imu_Data.C.Pack (Output)
             ));
          end;
       end;
