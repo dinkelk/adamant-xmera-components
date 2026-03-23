@@ -53,6 +53,8 @@ private
    ---------------------------------------
    -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
    overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;
+   -- This procedure is called when a Event_T_Send message is dropped due to a full queue.
+   overriding procedure Event_T_Send_Dropped (Self : in out Instance; Arg : in Event.T) is null;
 
    -----------------------------------------------
    -- Parameter primitives:

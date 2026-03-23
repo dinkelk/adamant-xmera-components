@@ -16,6 +16,8 @@ private
 
    -- Run algorithm to ensure integration is sound.
    overriding procedure Test (Self : in out Instance);
+   -- Test that an invalid parameter throws the appropriate event.
+   overriding procedure Test_Invalid_Parameter (Self : in out Instance);
 
    -- Test data and state:
    type Instance is new Mimu_Majority_Vote_Tests.Base_Instance with record

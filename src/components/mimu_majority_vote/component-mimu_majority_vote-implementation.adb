@@ -63,9 +63,9 @@ package body Component.Mimu_Majority_Vote.Implementation is
          declare
             -- Convert Ada packed types to C types and build input array:
             Imu_Inputs : aliased Imu_Input_Array :=
-               [Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_1)),
-                Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_2)),
-                Packed_F32x3_Record.C.To_C (Packed_F32x3_Record.Unpack (Imu_3))];
+               [Packed_F32x3_Record.C.Unpack (Imu_1),
+                Packed_F32x3_Record.C.Unpack (Imu_2),
+                Packed_F32x3_Record.C.Unpack (Imu_3)];
 
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
@@ -77,7 +77,7 @@ package body Component.Mimu_Majority_Vote.Implementation is
             -- Send out data product:
             Self.Data_Product_T_Send (Self.Data_Products.Majority_Vote_Result (
                Arg.Time,
-               Mimu_Majority_Vote_Output.Pack (Mimu_Majority_Vote_Output.C.To_Ada (Result))
+               Mimu_Majority_Vote_Output.C.Pack (Result)
             ));
          end;
       end if;
@@ -104,10 +104,12 @@ package body Component.Mimu_Majority_Vote.Implementation is
 
    -- Invalid Parameter handler. This procedure is called when a parameter's type is found to be invalid:
    overriding procedure Invalid_Parameter (Self : in out Instance; Par : in Parameter.T; Errant_Field_Number : in Unsigned_32; Errant_Field : in Basic_Types.Poly_Type) is
-      pragma Annotate (GNATSAS, Intentional, "subp always fails", "intentional assertion");
    begin
-      -- None of the parameters should be invalid in this case.
-      pragma Assert (False);
+      -- Throw event:
+      Self.Event_T_Send_If_Connected (Self.Events.Invalid_Parameter_Received (
+         Self.Sys_Time_T_Get,
+         (Id => Par.Header.Id, Errant_Field_Number => Errant_Field_Number, Errant_Field => Errant_Field)
+      ));
    end Invalid_Parameter;
 
    -----------------------------------------------
