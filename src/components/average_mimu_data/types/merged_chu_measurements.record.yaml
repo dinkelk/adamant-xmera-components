@@ -1,0 +1,12 @@
+---
+description: Record for the DPU Interface MIMU telemetry packet data sample merged CHU measurement structure. The four IMU sensors are here calibrated and merged.
+fields:
+  - name: X_Measurement
+    type: Interfaces.Integer_32
+    format: I32
+  - name: Y_Measurement
+    type: Interfaces.Integer_32
+    format: I32
+  - name: Z_Measurement
+    type: Interfaces.Integer_32
+    format: I32

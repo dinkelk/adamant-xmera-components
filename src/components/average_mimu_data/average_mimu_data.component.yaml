@@ -1,0 +1,24 @@
+---
+description: Averages MIMU accelerometer and gyro data within a configurable time window and transforms to the spacecraft body frame.
+execution: passive
+init:
+  description: Initializes the AverageMimuData algorithm.
+connectors:
+  - description: Receive raw MIMU data packet and buffer for later processing.
+    type: Mimu_Raw_Packet.T
+    kind: recv_sync
+  - description: Tick that triggers the averaging algorithm over buffered samples and publishes the result.
+    type: Tick.T
+    kind: recv_sync
+  - description: The system time is retrieved via this connector.
+    return_type: Sys_Time.T
+    kind: get
+  - description: The event send connector
+    type: Event.T
+    kind: send
+  - description: The data product invoker connector
+    type: Data_Product.T
+    kind: send
+  - description: The parameter update connector.
+    type: Parameter_Update.T
+    kind: modify
