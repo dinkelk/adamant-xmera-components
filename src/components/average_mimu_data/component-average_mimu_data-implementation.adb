@@ -49,14 +49,14 @@ package body Component.Average_Mimu_Data.Implementation is
             for Idx in Arg.Samples'Range loop
                Buffer.Meas_Time (Idx) := Base_Time_Ns + Interfaces.Unsigned_64 (Idx - Arg.Samples'First) * Sample_Period_Ns;
                Buffer.Gyro_P (Idx) := [
-                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.X_Measurement) * Self.Gyro_Scale.Value,
-                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.Y_Measurement) * Self.Gyro_Scale.Value,
-                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.Z_Measurement) * Self.Gyro_Scale.Value
+                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.X_Measurement) * Gyro_Scale,
+                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.Y_Measurement) * Gyro_Scale,
+                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.Z_Measurement) * Gyro_Scale
                ];
                Buffer.Accel_P (Idx) := [
-                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.X_Measurement) * Self.Accel_Scale.Value,
-                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.Y_Measurement) * Self.Accel_Scale.Value,
-                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.Z_Measurement) * Self.Accel_Scale.Value
+                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.X_Measurement) * Accel_Scale,
+                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.Y_Measurement) * Accel_Scale,
+                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.Z_Measurement) * Accel_Scale
                ];
             end loop;
          end;

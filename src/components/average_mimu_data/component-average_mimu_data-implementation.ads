@@ -31,6 +31,12 @@ private
    -- Number of raw samples per packet:
    Samples_Per_Packet : constant := 10;
 
+   -- ICD conversion factors (mission-stable, not parameterized):
+   -- gyro [rad/s/count] = 4000 / 2^31-1 * pi/180
+   Gyro_Scale : constant Short_Float := 3.2513631e-08;
+   -- accel [m/s^2/count] = 160 / 2^31-1
+   Accel_Scale : constant Short_Float := 7.4505806e-08;
+
    -- Pre-converted sample data for a single packet (10 samples deep):
    type Packet_Meas_Time_Array is array (0 .. Samples_Per_Packet - 1) of Interfaces.Unsigned_64;
    type Packet_Vector3f_Array is array (0 .. Samples_Per_Packet - 1) of Packed_F32x3.C.U_C;
@@ -110,9 +116,7 @@ private
    overriding function Validate_Parameters (
       Self : in out Instance;
       Time_Delta : in Packed_F32.U;
-      Dcm_Pltf_To_Bdy : in Packed_F32x9.U;
-      Gyro_Scale : in Packed_F32.U;
-      Accel_Scale : in Packed_F32.U
+      Dcm_Pltf_To_Bdy : in Packed_F32x9.U
    ) return Parameter_Validation_Status.E is (Parameter_Validation_Status.Valid);
 
 end Component.Average_Mimu_Data.Implementation;

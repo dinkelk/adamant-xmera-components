@@ -52,9 +52,9 @@ package body Average_Mimu_Data_Tests.Implementation is
       T : Component.Average_Mimu_Data.Implementation.Tester.Instance_Access renames Self.Tester;
       Params : Average_Mimu_Data_Parameters.Instance;
 
-      -- ICD conversion factors (must match C shim scale factors):
-      -- gyro[deg/s] = dn * 4000/2147483647, then deg->rad
-      -- acc[m/s^2]  = dn * 160/2147483647
+      -- ICD conversion factors (must match spec constants):
+      -- gyro[rad/s] = dn * 4000/2^31-1 * pi/180
+      -- acc[m/s^2]  = dn * 160/2^31-1
       Gyro_Scale : constant Short_Float :=
          (4_000.0 / 2_147_483_647.0) * (Ada.Numerics.Pi / 180.0);
       Accel_Scale : constant Short_Float := 160.0 / 2_147_483_647.0;
@@ -129,7 +129,7 @@ package body Average_Mimu_Data_Tests.Implementation is
       );
    begin
       -----------------------------------------------------------------------
-      -- Set parameters: identity DCM, 1s time window, conversion factors
+      -- Set parameters: identity DCM, 1s time window
       -- timeDelta=1.0 includes all 10 filled samples (age 0-90ms < 1.0s)
       -- but excludes the 110 zero-filled slots (age ~1.09s >= 1.0s).
       -----------------------------------------------------------------------
@@ -141,10 +141,6 @@ package body Average_Mimu_Data_Tests.Implementation is
             0.0, 1.0, 0.0,
             0.0, 0.0, 1.0
          ])), Success);
-      Parameter_Update_Status_Assert.Eq (T.Stage_Parameter (
-         Params.Gyro_Scale ((Value => Gyro_Scale))), Success);
-      Parameter_Update_Status_Assert.Eq (T.Stage_Parameter (
-         Params.Accel_Scale ((Value => Accel_Scale))), Success);
       Parameter_Update_Status_Assert.Eq (T.Update_Parameters, Success);
 
       -----------------------------------------------------------------------
@@ -311,7 +307,7 @@ package body Average_Mimu_Data_Tests.Implementation is
    -- Test that an invalid parameter throws the appropriate event.
    overriding procedure Test_Invalid_Parameter (Self : in out Instance) is
       T : Component.Average_Mimu_Data.Implementation.Tester.Instance_Access renames Self.Tester;
-      Param : Parameter.T := T.Parameters.Gyro_Scale ((Value => 1.0));
+      Param : Parameter.T := T.Parameters.Time_Delta ((Value => 1.0));
    begin
       -- Make the parameter invalid by modifying its length.
       Param.Header.Buffer_Length := 0;
@@ -323,7 +319,7 @@ package body Average_Mimu_Data_Tests.Implementation is
       Natural_Assert.Eq (T.Event_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Invalid_Parameter_Received_History.Get_Count, 1);
       Invalid_Parameter_Info_Assert.Eq (T.Invalid_Parameter_Received_History.Get (1), (
-         Id => T.Parameters.Get_Gyro_Scale_Id,
+         Id => T.Parameters.Get_Time_Delta_Id,
          Errant_Field_Number => Interfaces.Unsigned_32'Last,
          Errant_Field => [0, 0, 0, 0, 0, 0, 0, 0]
       ));
