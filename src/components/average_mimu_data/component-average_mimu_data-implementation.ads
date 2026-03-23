@@ -6,6 +6,7 @@
 with Mimu_Raw_Packet;
 with Tick;
 with Parameter_Update;
+with Packed_F32x3.C;
 with Average_Mimu_Data_Algorithm_C; use Average_Mimu_Data_Algorithm_C;
 
 -- Averages MIMU accelerometer and gyro data within a configurable time window and
@@ -32,12 +33,12 @@ private
 
    -- Pre-converted sample data for a single packet (10 samples deep):
    type Packet_Meas_Time_Array is array (0 .. Samples_Per_Packet - 1) of Interfaces.Unsigned_64;
-   type Packet_Vector3f_Array is array (0 .. Samples_Per_Packet - 1) of Vector3f_C;
+   type Packet_Vector3f_Array is array (0 .. Samples_Per_Packet - 1) of Packed_F32x3.C.U_C;
 
    type Converted_Packet_Data is record
-      Meas_Time : Packet_Meas_Time_Array := [others => 0];
-      Gyro_P    : Packet_Vector3f_Array := [others => [others => 0.0]];
-      Accel_P   : Packet_Vector3f_Array := [others => [others => 0.0]];
+      Meas_Time : Packet_Meas_Time_Array;
+      Gyro_P    : Packet_Vector3f_Array;
+      Accel_P   : Packet_Vector3f_Array;
    end record;
 
    type Converted_Buffer_Array is array (0 .. Max_Buffered_Packets - 1) of Converted_Packet_Data;
@@ -46,7 +47,11 @@ private
    type Instance is new Average_Mimu_Data.Base_Instance with record
       Alg : Average_Mimu_Data_Algorithm_Access := null;
       -- Pre-converted sample buffer, populated on recv, consumed on tick:
-      Buffer : Converted_Buffer_Array := [others => (others => <>)];
+      Buffer : Converted_Buffer_Array := [others => (
+         Meas_Time => [others => 0],
+         Gyro_P    => [others => [others => 0.0]],
+         Accel_P   => [others => [others => 0.0]]
+      )];
       -- Number of packets currently stored (0 .. Max_Buffered_Packets):
       Packet_Count : Natural := 0;
    end record;

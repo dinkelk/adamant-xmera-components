@@ -2,7 +2,6 @@
 -- Average_Mimu_Data Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Mimu_Data_Field_Sample_10;
 with Averaged_Imu_Data.C;
 with Packed_F32x9.C;
 
@@ -45,26 +44,23 @@ package body Component.Average_Mimu_Data.Implementation is
                Interfaces.Unsigned_64 (Arg.Timestamp.Seconds) * 1_000_000_000 +
                Interfaces.Unsigned_64 (Arg.Timestamp.Subseconds) * 1_000_000_000 / 65_536;
 
-            Samples : constant Mimu_Data_Field_Sample_10.U :=
-               Mimu_Data_Field_Sample_10.Unpack (Arg.Samples);
-
-            Idx : constant Natural := Self.Packet_Count;
+            Buffer : Converted_Packet_Data renames Self.Buffer (Self.Packet_Count);
          begin
-            for I in 0 .. Samples_Per_Packet - 1 loop
-               Self.Buffer (Idx).Meas_Time (I) := Base_Time_Ns + Interfaces.Unsigned_64 (I) * Sample_Period_Ns;
-               Self.Buffer (Idx).Gyro_P (I) := [
-                  Short_Float (Samples (I).Merged_Gyro_Rates.X_Measurement) * Self.Gyro_Scale.Value,
-                  Short_Float (Samples (I).Merged_Gyro_Rates.Y_Measurement) * Self.Gyro_Scale.Value,
-                  Short_Float (Samples (I).Merged_Gyro_Rates.Z_Measurement) * Self.Gyro_Scale.Value
+            for Idx in Arg.Samples'Range loop
+               Buffer.Meas_Time (Idx) := Base_Time_Ns + Interfaces.Unsigned_64 (Idx - Arg.Samples'First) * Sample_Period_Ns;
+               Buffer.Gyro_P (Idx) := [
+                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.X_Measurement) * Self.Gyro_Scale.Value,
+                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.Y_Measurement) * Self.Gyro_Scale.Value,
+                  Short_Float (Arg.Samples (Idx).Merged_Gyro_Rates.Z_Measurement) * Self.Gyro_Scale.Value
                ];
-               Self.Buffer (Idx).Accel_P (I) := [
-                  Short_Float (Samples (I).Merged_Accelerations.X_Measurement) * Self.Accel_Scale.Value,
-                  Short_Float (Samples (I).Merged_Accelerations.Y_Measurement) * Self.Accel_Scale.Value,
-                  Short_Float (Samples (I).Merged_Accelerations.Z_Measurement) * Self.Accel_Scale.Value
+               Buffer.Accel_P (Idx) := [
+                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.X_Measurement) * Self.Accel_Scale.Value,
+                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.Y_Measurement) * Self.Accel_Scale.Value,
+                  Short_Float (Arg.Samples (Idx).Merged_Accelerations.Z_Measurement) * Self.Accel_Scale.Value
                ];
             end loop;
-            Self.Packet_Count := Idx + 1;
          end;
+         Self.Packet_Count := Self.Packet_Count + 1;
       end if;
    end Mimu_Raw_Packet_T_Recv_Sync;
 
@@ -87,16 +83,19 @@ package body Component.Average_Mimu_Data.Implementation is
             Gyro_P    => [others => [others => 0.0]],
             Accel_P   => [others => [others => 0.0]]
          );
-         Offset : Natural := 0;
       begin
          -- Copy pre-converted samples into the algorithm input buffer:
-         for P in 0 .. Self.Packet_Count - 1 loop
-            for I in 0 .. Samples_Per_Packet - 1 loop
-               Input.Meas_Time (Offset + I) := Self.Buffer (P).Meas_Time (I);
-               Input.Gyro_P (Offset + I) := Self.Buffer (P).Gyro_P (I);
-               Input.Accel_P (Offset + I) := Self.Buffer (P).Accel_P (I);
+         for Pdx in Self.Buffer'First .. Self.Buffer'First + Self.Packet_Count - 1 loop
+            for Idx in Self.Buffer (Pdx).Meas_Time'Range loop
+               declare
+                  Flat_Idx : constant Natural :=
+                     (Pdx - Self.Buffer'First) * Samples_Per_Packet + (Idx - Self.Buffer (Pdx).Meas_Time'First);
+               begin
+                  Input.Meas_Time (Flat_Idx) := Self.Buffer (Pdx).Meas_Time (Idx);
+                  Input.Gyro_P (Flat_Idx) := Self.Buffer (Pdx).Gyro_P (Idx);
+                  Input.Accel_P (Flat_Idx) := Self.Buffer (Pdx).Accel_P (Idx);
+               end;
             end loop;
-            Offset := Offset + Samples_Per_Packet;
          end loop;
 
          declare

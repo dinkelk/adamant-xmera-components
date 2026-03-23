@@ -4,6 +4,7 @@ pragma Style_Checks (Off);
 pragma Warnings     (Off, "-gnatwu");
 
 with Interfaces.C; use Interfaces; use Interfaces.C;
+with Packed_F32x3.C;
 with Packed_F32x9_Record.C;
 with Averaged_Imu_Data.C;
 
@@ -18,12 +19,8 @@ package Average_Mimu_Data_Algorithm_C is
    -- MAX_BUF_PKT_C must match the #define in averageMimuDataAlgorithm_c.h:21
    Max_Buf_Pkt : constant := 120;
 
-   --* POD 3-vector matching C Vector3f_c { float data[3]; }
-   type Vector3f_C is array (0 .. 2) of aliased Short_Float
-      with Convention => C;
-
-   --* Array of Max_Buf_Pkt Vector3f_C elements.
-   type Vector3f_C_Array is array (0 .. Max_Buf_Pkt - 1) of aliased Vector3f_C
+   --* Array of Max_Buf_Pkt Vector3f elements.
+   type Vector3f_C_Array is array (0 .. Max_Buf_Pkt - 1) of aliased Packed_F32x3.C.U_C
       with Convention => C;
 
    --* Array of Max_Buf_Pkt timestamps.
