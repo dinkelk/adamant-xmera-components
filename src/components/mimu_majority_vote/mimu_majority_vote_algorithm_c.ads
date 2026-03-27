@@ -49,7 +49,7 @@ package Mimu_Majority_Vote_Algorithm_C is
    --* @return The computed majority vote output.
    function Update
      (Self           : Mimu_Majority_Vote_Algorithm_Access;
-      Imu_Inputs     : Packed_F32x3_Record.C.U_C_Access;
+      Imu_Inputs     : access constant Packed_F32x3_Record.C.U_C;
       Number_Of_Imus : Unsigned_32)
      return Mimu_Majority_Vote_Output.C.U_C
      with Import       => True,

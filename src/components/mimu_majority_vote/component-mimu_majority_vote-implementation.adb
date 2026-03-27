@@ -77,7 +77,7 @@ package body Component.Mimu_Majority_Vote.Implementation is
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
                Self.Alg,
-               Imu_Inputs     => Imu_Inputs (Imu_Inputs'First)'Unchecked_Access,
+               Imu_Inputs     => Imu_Inputs (Imu_Inputs'First)'Access,
                Number_Of_Imus => Num_Active_Imus
             );
          begin
