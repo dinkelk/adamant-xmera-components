@@ -8,10 +8,13 @@ with Algorithm_Wrapper_Util;
 
 package body Component.Mimu_Majority_Vote.Implementation is
 
-   -- Number of active IMUs used by the majority vote algorithm.
-   -- The algorithm's omegaDifferencesMag array is sized MAX_IMU_VEH_COUNT - 1
-   -- and the fault correction formula is hardcoded for 3 inputs.
+   -- Number of active IMUs passed to the majority vote algorithm. The algorithm
+   -- compares angular velocity inputs, detects outliers above a threshold, and
+   -- recomputes the average excluding faulted inputs. This wrapper constrains
+   -- the number of active IMUs to 3, although the algorithm can support more.
    Num_Active_Imus : constant := MAX_IMU_VEH_COUNT - 1;
+   pragma Compile_Time_Error (Num_Active_Imus /= 3,
+      "This wrapper requires exactly 3 active IMUs");
 
    -- Array type for passing IMU inputs to the C algorithm.
    type Imu_Input_Array is array (Natural range 0 .. Num_Active_Imus - 1) of aliased Packed_F32x3_Record.C.U_C;
@@ -55,7 +58,11 @@ package body Component.Mimu_Majority_Vote.Implementation is
       -- Update the parameters:
       Self.Update_Parameters;
 
-      -- Check all dependencies are available:
+      -- Check all dependencies are available. If any IMU data is stale,
+      -- skip the update entirely — no output is produced this tick.
+      -- TODO: Verify stale data policy with algorithm owner. If the
+      -- algorithm can tolerate stale inputs, consider always calling
+      -- Update and asserting statuses instead.
       if Is_Dep_Status_Success (Imu_1_Status) and then
          Is_Dep_Status_Success (Imu_2_Status) and then
          Is_Dep_Status_Success (Imu_3_Status)
