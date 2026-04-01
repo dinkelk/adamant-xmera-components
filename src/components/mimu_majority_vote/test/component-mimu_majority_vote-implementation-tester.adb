@@ -22,6 +22,7 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       Self.Invalid_Parameter_Received_History.Init (Depth => 100);
       -- Data product histories:
       Self.Majority_Vote_Result_History.Init (Depth => 100);
+      Self.Voted_Imu_Body_History.Init (Depth => 100);
    end Init_Base;
 
    procedure Final_Base (Self : in out Instance) is
@@ -36,6 +37,7 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       Self.Invalid_Parameter_Received_History.Destroy;
       -- Data product histories:
       Self.Majority_Vote_Result_History.Destroy;
+      Self.Voted_Imu_Body_History.Destroy;
    end Final_Base;
 
    ---------------------------------------
@@ -67,11 +69,11 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       -- Determine return data product ID:
       if Id_To_Return = 0 then
          case Arg.Id is
-            -- ID for Imu_1_Ang_Vel_Body:
+            -- ID for Imu_1_Body:
             when 0 => Id_To_Return := 0;
-            -- ID for Imu_2_Ang_Vel_Body:
+            -- ID for Imu_2_Body:
             when 1 => Id_To_Return := 1;
-            -- ID for Imu_3_Ang_Vel_Body:
+            -- ID for Imu_3_Body:
             when 2 => Id_To_Return := 2;
             -- If ID can not be found, then return ID out of range error.
             when others =>
@@ -84,12 +86,12 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       -- Determine return data product length:
       if Length_To_Return = 0 then
          case Arg.Id is
-            -- Length for Imu_1_Ang_Vel_Body:
-            when 0 => Length_To_Return := Packed_F32x3_Record.Size_In_Bytes;
-            -- Length for Imu_2_Ang_Vel_Body:
-            when 1 => Length_To_Return := Packed_F32x3_Record.Size_In_Bytes;
-            -- Length for Imu_3_Ang_Vel_Body:
-            when 2 => Length_To_Return := Packed_F32x3_Record.Size_In_Bytes;
+            -- Length for Imu_1_Body:
+            when 0 => Length_To_Return := Averaged_Imu_Data.Size_In_Bytes;
+            -- Length for Imu_2_Body:
+            when 1 => Length_To_Return := Averaged_Imu_Data.Size_In_Bytes;
+            -- Length for Imu_3_Body:
+            when 2 => Length_To_Return := Averaged_Imu_Data.Size_In_Bytes;
             -- If ID can not be found, then return ID out of range error.
             when others =>
                if Return_Status = Data_Product_Enums.Fetch_Status.Success then
@@ -106,18 +108,18 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       -- Fill the data product buffer:
       if Return_Status = Data_Product_Enums.Fetch_Status.Success then
          case Arg.Id is
-            -- Length for Imu_1_Ang_Vel_Body:
+            -- Length for Imu_1_Body:
             when 0 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Packed_F32x3_Record.Size_In_Bytes - 1) :=
-                  Packed_F32x3_Record.Serialization.To_Byte_Array (Self.Imu_1_Ang_Vel_Body);
-            -- Length for Imu_2_Ang_Vel_Body:
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Averaged_Imu_Data.Size_In_Bytes - 1) :=
+                  Averaged_Imu_Data.Serialization.To_Byte_Array (Self.Imu_1_Body);
+            -- Length for Imu_2_Body:
             when 1 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Packed_F32x3_Record.Size_In_Bytes - 1) :=
-                  Packed_F32x3_Record.Serialization.To_Byte_Array (Self.Imu_2_Ang_Vel_Body);
-            -- Length for Imu_3_Ang_Vel_Body:
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Averaged_Imu_Data.Size_In_Bytes - 1) :=
+                  Averaged_Imu_Data.Serialization.To_Byte_Array (Self.Imu_2_Body);
+            -- Length for Imu_3_Body:
             when 2 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Packed_F32x3_Record.Size_In_Bytes - 1) :=
-                  Packed_F32x3_Record.Serialization.To_Byte_Array (Self.Imu_3_Ang_Vel_Body);
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Averaged_Imu_Data.Size_In_Bytes - 1) :=
+                  Averaged_Imu_Data.Serialization.To_Byte_Array (Self.Imu_3_Body);
             -- Do not fill. The ID is not recognized.
             when others =>
                Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;
@@ -202,6 +204,13 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       -- Push the argument onto the test history for looking at later:
       Self.Majority_Vote_Result_History.Push (Arg);
    end Majority_Vote_Result;
+
+   -- Fault-excluded averaged IMU body data for downstream consumers.
+   overriding procedure Voted_Imu_Body (Self : in out Instance; Arg : in Averaged_Imu_Data.T) is
+   begin
+      -- Push the argument onto the test history for looking at later:
+      Self.Voted_Imu_Body_History.Push (Arg);
+   end Voted_Imu_Body;
 
    -----------------------------------------------
    -- Special primitives for aiding in the staging,

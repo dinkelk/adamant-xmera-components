@@ -65,15 +65,15 @@ package body Mimu_Majority_Vote_Tests.Implementation is
       Parameter_Update_Status_Assert.Eq (T.Update_Parameters, Success);
 
       -- Set IMU data dependencies (symmetric perturbations -> exact average)
-      T.Imu_1_Ang_Vel_Body := (Value => [1.0, 2.0, 3.0]);
-      T.Imu_2_Ang_Vel_Body := (Value => [1.1, 2.1, 3.1]);
-      T.Imu_3_Ang_Vel_Body := (Value => [0.9, 1.9, 2.9]);
+      T.Imu_1_Body := (Accel_Body => [others => 0.0], Ang_Vel_Body => [1.0, 2.0, 3.0]);
+      T.Imu_2_Body := (Accel_Body => [others => 0.0], Ang_Vel_Body => [1.1, 2.1, 3.1]);
+      T.Imu_3_Body := (Accel_Body => [others => 0.0], Ang_Vel_Body => [0.9, 1.9, 2.9]);
 
       -- Send tick to trigger algorithm
       T.Tick_T_Send ((Time => T.System_Time, Count => 0));
 
-      -- Verify data product was produced
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
+      -- Verify data products were produced (Majority_Vote_Result + Voted_Imu_Body)
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
       Natural_Assert.Eq (T.Majority_Vote_Result_History.Get_Count, 1);
 
       -- Check output: simple average, no fault
@@ -97,15 +97,15 @@ package body Mimu_Majority_Vote_Tests.Implementation is
       Parameter_Update_Status_Assert.Eq (T.Update_Parameters, Success);
 
       -- Set IMU data dependencies (IMU 2 is outlier)
-      T.Imu_1_Ang_Vel_Body := (Value => [1.0, 2.0, 3.0]);
-      T.Imu_2_Ang_Vel_Body := (Value => [2.0, 3.0, 4.0]);
-      T.Imu_3_Ang_Vel_Body := (Value => [1.1, 2.1, 3.1]);
+      T.Imu_1_Body := (Accel_Body => [others => 0.0], Ang_Vel_Body => [1.0, 2.0, 3.0]);
+      T.Imu_2_Body := (Accel_Body => [others => 0.0], Ang_Vel_Body => [2.0, 3.0, 4.0]);
+      T.Imu_3_Body := (Accel_Body => [others => 0.0], Ang_Vel_Body => [1.1, 2.1, 3.1]);
 
       -- Send tick to trigger algorithm
       T.Tick_T_Send ((Time => T.System_Time, Count => 0));
 
-      -- Verify second data product was produced
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
+      -- Verify second set of data products was produced
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 4);
       Natural_Assert.Eq (T.Majority_Vote_Result_History.Get_Count, 2);
 
       -- Check output: fault-excluded average of IMU 1 and IMU 3

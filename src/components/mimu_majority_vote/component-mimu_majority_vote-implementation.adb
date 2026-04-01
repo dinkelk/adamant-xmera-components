@@ -2,6 +2,7 @@
 -- Mimu_Majority_Vote Component Implementation Body
 --------------------------------------------------------------------------------
 
+with Averaged_Imu_Data;
 with Packed_F32x3_Record.C;
 with Mimu_Majority_Vote_Output.C;
 with Algorithm_Wrapper_Util;
@@ -44,16 +45,16 @@ package body Component.Mimu_Majority_Vote.Implementation is
       use Data_Product_Enums.Data_Dependency_Status;
       use Algorithm_Wrapper_Util;
 
-      -- Grab data dependencies for the 3 active IMU angular velocity inputs:
-      Imu_1 : Packed_F32x3_Record.T;
+      -- Grab data dependencies for the 3 active IMU body data inputs:
+      Imu_1 : Averaged_Imu_Data.T;
       Imu_1_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_1_Ang_Vel_Body (Value => Imu_1, Stale_Reference => Arg.Time);
-      Imu_2 : Packed_F32x3_Record.T;
+         Self.Get_Imu_1_Body (Value => Imu_1, Stale_Reference => Arg.Time);
+      Imu_2 : Averaged_Imu_Data.T;
       Imu_2_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_2_Ang_Vel_Body (Value => Imu_2, Stale_Reference => Arg.Time);
-      Imu_3 : Packed_F32x3_Record.T;
+         Self.Get_Imu_2_Body (Value => Imu_2, Stale_Reference => Arg.Time);
+      Imu_3 : Averaged_Imu_Data.T;
       Imu_3_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_3_Ang_Vel_Body (Value => Imu_3, Stale_Reference => Arg.Time);
+         Self.Get_Imu_3_Body (Value => Imu_3, Stale_Reference => Arg.Time);
    begin
       -- Update the parameters:
       Self.Update_Parameters;
@@ -68,11 +69,11 @@ package body Component.Mimu_Majority_Vote.Implementation is
          Is_Dep_Status_Success (Imu_3_Status)
       then
          declare
-            -- Convert Ada packed types to C types and build input array:
+            -- Extract angular velocity from each IMU and build C input array:
             Imu_Inputs : aliased Imu_Input_Array :=
-               [Packed_F32x3_Record.C.Unpack (Imu_1),
-                Packed_F32x3_Record.C.Unpack (Imu_2),
-                Packed_F32x3_Record.C.Unpack (Imu_3)];
+               [Packed_F32x3_Record.C.Unpack ((Value => Imu_1.Ang_Vel_Body)),
+                Packed_F32x3_Record.C.Unpack ((Value => Imu_2.Ang_Vel_Body)),
+                Packed_F32x3_Record.C.Unpack ((Value => Imu_3.Ang_Vel_Body))];
 
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
@@ -80,11 +81,20 @@ package body Component.Mimu_Majority_Vote.Implementation is
                Imu_Inputs     => Imu_Inputs (Imu_Inputs'First)'Access,
                Number_Of_Imus => Num_Active_Imus
             );
+            Packed_Result : constant Mimu_Majority_Vote_Output.T :=
+               Mimu_Majority_Vote_Output.C.Pack (Result);
          begin
-            -- Send out data product:
+            -- Publish full result with fault status:
             Self.Data_Product_T_Send (Self.Data_Products.Majority_Vote_Result (
                Arg.Time,
-               Mimu_Majority_Vote_Output.C.Pack (Result)
+               Packed_Result
+            ));
+
+            -- Publish voted IMU body data for downstream consumers:
+            Self.Data_Product_T_Send (Self.Data_Products.Voted_Imu_Body (
+               Arg.Time,
+               (Accel_Body => [others => 0.0],
+                Ang_Vel_Body => Packed_Result.Avg_Ang_Vel_Body)
             ));
          end;
       end if;

@@ -14,7 +14,8 @@ with Data_Product;
 with Mimu_Majority_Vote_Output.Representation;
 with Event;
 with Invalid_Parameter_Info.Representation;
-with Packed_F32x3_Record;
+with Averaged_Imu_Data;
+with Averaged_Imu_Data.Representation;
 
 -- MIMU majority vote algorithm detects faulted IMUs by comparing individual
 -- angular velocity measurements and computes a fault-excluded average.
@@ -33,6 +34,7 @@ package Component.Mimu_Majority_Vote.Implementation.Tester is
 
    -- Data product history packages:
    package Majority_Vote_Result_History_Package is new Printable_History (Mimu_Majority_Vote_Output.T, Mimu_Majority_Vote_Output.Representation.Image);
+   package Voted_Imu_Body_History_Package is new Printable_History (Averaged_Imu_Data.T, Averaged_Imu_Data.Representation.Image);
 
    -- Component class instance:
    type Instance is new Component.Mimu_Majority_Vote_Reciprocal.Base_Instance with record
@@ -47,12 +49,13 @@ package Component.Mimu_Majority_Vote.Implementation.Tester is
       Invalid_Parameter_Received_History : Invalid_Parameter_Received_History_Package.Instance;
       -- Data product histories:
       Majority_Vote_Result_History : Majority_Vote_Result_History_Package.Instance;
+      Voted_Imu_Body_History : Voted_Imu_Body_History_Package.Instance;
       -- Data dependency return values. These can be set during unit test
       -- and will be returned to the component when a data dependency call
       -- is made.
-      Imu_1_Ang_Vel_Body : Packed_F32x3_Record.T;
-      Imu_2_Ang_Vel_Body : Packed_F32x3_Record.T;
-      Imu_3_Ang_Vel_Body : Packed_F32x3_Record.T;
+      Imu_1_Body : Averaged_Imu_Data.T;
+      Imu_2_Body : Averaged_Imu_Data.T;
+      Imu_3_Body : Averaged_Imu_Data.T;
       -- The return status for the data dependency fetch. This can be set
       -- during unit test to return something other than Success.
       Data_Dependency_Return_Status_Override : Data_Product_Enums.Fetch_Status.E := Data_Product_Enums.Fetch_Status.Success;
@@ -109,6 +112,8 @@ package Component.Mimu_Majority_Vote.Implementation.Tester is
    -- Majority vote output containing averaged angular velocity and fault detection
    -- status.
    overriding procedure Majority_Vote_Result (Self : in out Instance; Arg : in Mimu_Majority_Vote_Output.T);
+   -- Fault-excluded averaged IMU body data for downstream consumers.
+   overriding procedure Voted_Imu_Body (Self : in out Instance; Arg : in Averaged_Imu_Data.T);
 
    -----------------------------------------------
    -- Special primitives for aiding in the staging,
