@@ -2,7 +2,6 @@
 -- Mimu_Majority_Vote Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Averaged_Imu_Data;
 with Packed_F32x3_Record.C;
 with Mimu_Majority_Vote_Output.C;
 with Algorithm_Wrapper_Util;
@@ -90,11 +89,10 @@ package body Component.Mimu_Majority_Vote.Implementation is
                Packed_Result
             ));
 
-            -- Publish voted IMU body data for downstream consumers:
-            Self.Data_Product_T_Send (Self.Data_Products.Voted_Imu_Body (
+            -- Publish fault-excluded averaged angular velocity:
+            Self.Data_Product_T_Send (Self.Data_Products.Voted_Ang_Vel_Body (
                Arg.Time,
-               (Accel_Body => [others => 0.0],
-                Ang_Vel_Body => Packed_Result.Avg_Ang_Vel_Body)
+               (Value => Packed_Result.Avg_Ang_Vel_Body)
             ));
          end;
       end if;

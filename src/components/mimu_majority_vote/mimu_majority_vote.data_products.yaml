@@ -4,6 +4,6 @@ data_products:
   - name: Majority_Vote_Result
     type: Mimu_Majority_Vote_Output.T
     description: Majority vote output containing averaged angular velocity and fault detection status.
-  - name: Voted_Imu_Body
-    type: Averaged_Imu_Data.T
-    description: Fault-excluded averaged IMU body data for downstream consumers.
+  - name: Voted_Ang_Vel_Body
+    type: Packed_F32x3_Record.T
+    description: "[rad/s] Fault-excluded averaged angular velocity in body frame."
