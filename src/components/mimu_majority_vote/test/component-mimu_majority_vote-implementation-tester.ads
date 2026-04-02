@@ -14,8 +14,8 @@ with Data_Product;
 with Mimu_Majority_Vote_Output.Representation;
 with Event;
 with Invalid_Parameter_Info.Representation;
-with Averaged_Imu_Data;
-with Averaged_Imu_Data.Representation;
+with Packed_F32x3_Record;
+with Packed_F32x3_Record.Representation;
 
 -- MIMU majority vote algorithm detects faulted IMUs by comparing individual
 -- angular velocity measurements and computes a fault-excluded average.
@@ -34,7 +34,7 @@ package Component.Mimu_Majority_Vote.Implementation.Tester is
 
    -- Data product history packages:
    package Majority_Vote_Result_History_Package is new Printable_History (Mimu_Majority_Vote_Output.T, Mimu_Majority_Vote_Output.Representation.Image);
-   package Voted_Imu_Body_History_Package is new Printable_History (Averaged_Imu_Data.T, Averaged_Imu_Data.Representation.Image);
+   package Voted_Ang_Vel_Body_History_Package is new Printable_History (Packed_F32x3_Record.T, Packed_F32x3_Record.Representation.Image);
 
    -- Component class instance:
    type Instance is new Component.Mimu_Majority_Vote_Reciprocal.Base_Instance with record
@@ -49,7 +49,7 @@ package Component.Mimu_Majority_Vote.Implementation.Tester is
       Invalid_Parameter_Received_History : Invalid_Parameter_Received_History_Package.Instance;
       -- Data product histories:
       Majority_Vote_Result_History : Majority_Vote_Result_History_Package.Instance;
-      Voted_Imu_Body_History : Voted_Imu_Body_History_Package.Instance;
+      Voted_Ang_Vel_Body_History : Voted_Ang_Vel_Body_History_Package.Instance;
       -- Data dependency return values. These can be set during unit test
       -- and will be returned to the component when a data dependency call
       -- is made.
@@ -112,8 +112,8 @@ package Component.Mimu_Majority_Vote.Implementation.Tester is
    -- Majority vote output containing averaged angular velocity and fault detection
    -- status.
    overriding procedure Majority_Vote_Result (Self : in out Instance; Arg : in Mimu_Majority_Vote_Output.T);
-   -- Fault-excluded averaged IMU body data for downstream consumers.
-   overriding procedure Voted_Imu_Body (Self : in out Instance; Arg : in Averaged_Imu_Data.T);
+   -- Fault-excluded averaged angular velocity in body frame.
+   overriding procedure Voted_Ang_Vel_Body (Self : in out Instance; Arg : in Packed_F32x3_Record.T);
 
    -----------------------------------------------
    -- Special primitives for aiding in the staging,
