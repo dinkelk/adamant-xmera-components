@@ -33,7 +33,7 @@ jobs:
           set-safe-directory: true
           repository: lasp/fp32-fsw-xmera
           path: fp32-fsw-xmera
-          ref: develop
+          ref: feature/bounded-array-c-shim-updates
 
       - name: Clone Eigen with freestanding support
         uses: actions/checkout@v4
