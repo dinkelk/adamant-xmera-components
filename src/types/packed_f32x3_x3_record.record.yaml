@@ -1,0 +1,9 @@
+---
+#  typedef struct {
+#      Vector3f_c vec[MIMU_COUNT_C];
+#  } Vector3fArray3_c;
+description: Record wrapping an array of 3 Packed_F32x3 elements. Maps to Vector3fArray3_c in the C shim.
+fields:
+  - name: Vec
+    type: Packed_F32x3_X3.T
+    description: "Array of 3-element float vectors"

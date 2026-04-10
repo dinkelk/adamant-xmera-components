@@ -1,4 +1,4 @@
 ---
-description: Array of 3 Packed_F32x3 elements for passing IMU inputs to C algorithms.
-type: Packed_F32x3.T
+description: Array of 3 Packed_F32x3_Record elements for passing IMU inputs to C algorithms.
+type: Packed_F32x3_Record.T
 length: 3

@@ -5,24 +5,24 @@ pragma Warnings     (Off, "-gnatwu");
 
 with Interfaces.C;              use Interfaces; use Interfaces.C;
 with Mimu_Majority_Vote_Output.C;
-with Packed_F32x3_X3.C;
+with Packed_F32x3_X3_Record.C;
 
 package Mimu_Majority_Vote_Algorithm_C is
 
-   -- MAX_IMU_VEH_COUNT must match the constexpr in mimuMajorityVoteTypes.h:10
+   -- MIMU_COUNT must match MIMU_COUNT_C in mimuMajorityVoteAlgorithm_c.h:18
    -- Re-run h2ads if the C header changes to regenerate this binding
-   MAX_IMU_VEH_COUNT : constant := 4;
+   MIMU_COUNT : constant := 3;
 
-   --* @brief Get the maximum IMU vehicle count constant for validation.
-   --* @return The maximum IMU count (MAX_IMU_VEH_COUNT = 4).
-   function Get_Max_Imu_Veh_Count
+   --* @brief Get the MIMU count constant for validation.
+   --* @return The IMU count (MIMU_COUNT = 3).
+   function Get_Mimu_Count
      return Unsigned_32
      with Import       => True,
           Convention   => C,
-          External_Name => "MimuMajorityVoteAlgorithm_getMaxImuVehCount";
+          External_Name => "MimuMajorityVoteAlgorithm_getMimuCount";
 
    -- Runtime validation: ensure Ada constant matches C definition
-   pragma Assert (Unsigned_32 (MAX_IMU_VEH_COUNT) = Get_Max_Imu_Veh_Count);
+   pragma Assert (Unsigned_32 (MIMU_COUNT) = Get_Mimu_Count);
 
    --* Opaque handle for a MimuMajorityVoteAlgorithm instance.
    type Mimu_Majority_Vote_Algorithm is limited private;
@@ -42,15 +42,20 @@ package Mimu_Majority_Vote_Algorithm_C is
           Convention   => C,
           External_Name => "MimuMajorityVoteAlgorithm_destroy";
 
+   --* @brief Reset fault persistence counters to zero.
+   procedure Reset
+     (Self : Mimu_Majority_Vote_Algorithm_Access)
+     with Import       => True,
+          Convention   => C,
+          External_Name => "MimuMajorityVoteAlgorithm_reset";
+
    --* @brief Run the majority vote update step.
    --* @param Self           The algorithm instance.
    --* @param Imu_Inputs     Array of IMU angular velocity 3-vectors.
-   --* @param Number_Of_Imus Number of valid IMU inputs in the array.
    --* @return The computed majority vote output.
    function Update
      (Self           : Mimu_Majority_Vote_Algorithm_Access;
-      Imu_Inputs     : Packed_F32x3_X3.C.U_C;
-      Number_Of_Imus : Unsigned_32)
+      Imu_Inputs     : Packed_F32x3_X3_Record.C.U_C)
      return Mimu_Majority_Vote_Output.C.U_C
      with Import       => True,
           Convention   => C,
@@ -75,6 +80,26 @@ package Mimu_Majority_Vote_Algorithm_C is
      with Import       => True,
           Convention   => C,
           External_Name => "MimuMajorityVoteAlgorithm_getOmegaThreshold";
+
+   --* @brief Set the fault persistence limit.
+   --* @param Self  The algorithm instance.
+   --* @param Value The new fault persistence limit.
+   procedure Set_Fault_Persistence_Limit
+     (Self  : Mimu_Majority_Vote_Algorithm_Access;
+      Value : Unsigned_32)
+     with Import       => True,
+          Convention   => C,
+          External_Name => "MimuMajorityVoteAlgorithm_setFaultPersistenceLimit";
+
+   --* @brief Get the current fault persistence limit.
+   --* @param Self The algorithm instance.
+   --* @return The current fault persistence limit.
+   function Get_Fault_Persistence_Limit
+     (Self : Mimu_Majority_Vote_Algorithm_Access)
+     return Unsigned_32
+     with Import       => True,
+          Convention   => C,
+          External_Name => "MimuMajorityVoteAlgorithm_getFaultPersistenceLimit";
 
 private
 

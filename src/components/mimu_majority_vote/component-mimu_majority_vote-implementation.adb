@@ -2,19 +2,15 @@
 -- Mimu_Majority_Vote Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Packed_F32x3_X3.C;
+with Packed_F32x3_X3_Record.C;
 with Packed_F32x3.C;
 with Mimu_Majority_Vote_Output.C;
 with Algorithm_Wrapper_Util;
 
 package body Component.Mimu_Majority_Vote.Implementation is
 
-   -- Number of active IMUs passed to the majority vote algorithm. The algorithm
-   -- compares angular velocity inputs, detects outliers above a threshold, and
-   -- recomputes the average excluding faulted inputs. This wrapper constrains
-   -- the number of active IMUs to 3, although the algorithm can support more.
-   Num_Active_Imus : constant := MAX_IMU_VEH_COUNT - 1;
-   pragma Compile_Time_Error (Num_Active_Imus /= 3,
+   -- Compile-time check that the algorithm uses exactly 3 IMUs.
+   pragma Compile_Time_Error (MIMU_COUNT /= 3,
       "This wrapper requires exactly 3 active IMUs");
 
    --------------------------------------------------
@@ -66,18 +62,17 @@ package body Component.Mimu_Majority_Vote.Implementation is
          Is_Dep_Status_Success (Imu_3_Status)
       then
          declare
-            -- Extract angular velocity from each IMU and build C input array:
-            Imu_Inputs : constant Packed_F32x3_X3.C.U_C := [
-               Packed_F32x3.C.Unpack (Imu_1_T.Ang_Vel_Body),
-               Packed_F32x3.C.Unpack (Imu_2_T.Ang_Vel_Body),
-               Packed_F32x3.C.Unpack (Imu_3_T.Ang_Vel_Body)
-            ];
+            -- Extract angular velocity from each IMU and build C input record:
+            Imu_Inputs : constant Packed_F32x3_X3_Record.C.U_C := (Vec => [
+               (Value => Packed_F32x3.C.Unpack (Imu_1_T.Ang_Vel_Body)),
+               (Value => Packed_F32x3.C.Unpack (Imu_2_T.Ang_Vel_Body)),
+               (Value => Packed_F32x3.C.Unpack (Imu_3_T.Ang_Vel_Body))
+            ]);
 
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
                Self.Alg,
-               Imu_Inputs     => Imu_Inputs,
-               Number_Of_Imus => Num_Active_Imus
+               Imu_Inputs     => Imu_Inputs
             );
             Packed_Result : constant Mimu_Majority_Vote_Output.T :=
                Mimu_Majority_Vote_Output.Pack (Mimu_Majority_Vote_Output.C.To_Ada (Result));
