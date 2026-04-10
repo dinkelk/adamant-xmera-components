@@ -5,7 +5,7 @@ pragma Warnings     (Off, "-gnatwu");
 
 with Interfaces.C;              use Interfaces; use Interfaces.C;
 with Mimu_Majority_Vote_Output.C;
-with Packed_F32x3_Record.C;
+with Packed_F32x3_X3.C;
 
 package Mimu_Majority_Vote_Algorithm_C is
 
@@ -44,12 +44,12 @@ package Mimu_Majority_Vote_Algorithm_C is
 
    --* @brief Run the majority vote update step.
    --* @param Self           The algorithm instance.
-   --* @param Imu_Inputs     Pointer to array of IMU input structs (max MAX_IMU_VEH_COUNT).
+   --* @param Imu_Inputs     Array of IMU angular velocity 3-vectors.
    --* @param Number_Of_Imus Number of valid IMU inputs in the array.
    --* @return The computed majority vote output.
    function Update
      (Self           : Mimu_Majority_Vote_Algorithm_Access;
-      Imu_Inputs     : access constant Packed_F32x3_Record.C.U_C;
+      Imu_Inputs     : Packed_F32x3_X3.C.U_C;
       Number_Of_Imus : Unsigned_32)
      return Mimu_Majority_Vote_Output.C.U_C
      with Import       => True,

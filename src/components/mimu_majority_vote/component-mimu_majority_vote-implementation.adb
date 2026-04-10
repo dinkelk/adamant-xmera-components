@@ -2,7 +2,8 @@
 -- Mimu_Majority_Vote Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Packed_F32x3_Record.C;
+with Packed_F32x3_X3.C;
+with Packed_F32x3.C;
 with Mimu_Majority_Vote_Output.C;
 with Algorithm_Wrapper_Util;
 
@@ -15,9 +16,6 @@ package body Component.Mimu_Majority_Vote.Implementation is
    Num_Active_Imus : constant := MAX_IMU_VEH_COUNT - 1;
    pragma Compile_Time_Error (Num_Active_Imus /= 3,
       "This wrapper requires exactly 3 active IMUs");
-
-   -- Array type for passing IMU inputs to the C algorithm.
-   type Imu_Input_Array is array (Natural range 0 .. Num_Active_Imus - 1) of aliased Packed_F32x3_Record.C.U_C;
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -45,15 +43,15 @@ package body Component.Mimu_Majority_Vote.Implementation is
       use Algorithm_Wrapper_Util;
 
       -- Grab data dependencies for the 3 active IMU body data inputs:
-      Imu_1 : Averaged_Imu_Data.T;
+      Imu_1_T : Averaged_Imu_Data.T;
       Imu_1_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_1_Body (Value => Imu_1, Stale_Reference => Arg.Time);
-      Imu_2 : Averaged_Imu_Data.T;
+         Self.Get_Imu_1_Body (Value => Imu_1_T, Stale_Reference => Arg.Time);
+      Imu_2_T : Averaged_Imu_Data.T;
       Imu_2_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_2_Body (Value => Imu_2, Stale_Reference => Arg.Time);
-      Imu_3 : Averaged_Imu_Data.T;
+         Self.Get_Imu_2_Body (Value => Imu_2_T, Stale_Reference => Arg.Time);
+      Imu_3_T : Averaged_Imu_Data.T;
       Imu_3_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Imu_3_Body (Value => Imu_3, Stale_Reference => Arg.Time);
+         Self.Get_Imu_3_Body (Value => Imu_3_T, Stale_Reference => Arg.Time);
    begin
       -- Update the parameters:
       Self.Update_Parameters;
@@ -69,19 +67,20 @@ package body Component.Mimu_Majority_Vote.Implementation is
       then
          declare
             -- Extract angular velocity from each IMU and build C input array:
-            Imu_Inputs : aliased Imu_Input_Array :=
-               [Packed_F32x3_Record.C.Unpack ((Value => Imu_1.Ang_Vel_Body)),
-                Packed_F32x3_Record.C.Unpack ((Value => Imu_2.Ang_Vel_Body)),
-                Packed_F32x3_Record.C.Unpack ((Value => Imu_3.Ang_Vel_Body))];
+            Imu_Inputs : constant Packed_F32x3_X3.C.U_C := [
+               Packed_F32x3.C.Unpack (Imu_1_T.Ang_Vel_Body),
+               Packed_F32x3.C.Unpack (Imu_2_T.Ang_Vel_Body),
+               Packed_F32x3.C.Unpack (Imu_3_T.Ang_Vel_Body)
+            ];
 
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
                Self.Alg,
-               Imu_Inputs     => Imu_Inputs (Imu_Inputs'First)'Access,
+               Imu_Inputs     => Imu_Inputs,
                Number_Of_Imus => Num_Active_Imus
             );
             Packed_Result : constant Mimu_Majority_Vote_Output.T :=
-               Mimu_Majority_Vote_Output.C.Pack (Result);
+               Mimu_Majority_Vote_Output.Pack (Mimu_Majority_Vote_Output.C.To_Ada (Result));
          begin
             -- Publish full result with fault status:
             Self.Data_Product_T_Send (Self.Data_Products.Majority_Vote_Result (
