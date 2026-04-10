@@ -3,7 +3,6 @@
 --------------------------------------------------------------------------------
 
 -- Includes:
-with Averaged_Imu_Data;
 with Parameter;
 
 package body Component.Mimu_Majority_Vote.Implementation.Tester is
@@ -23,7 +22,6 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       Self.Invalid_Parameter_Received_History.Init (Depth => 100);
       -- Data product histories:
       Self.Majority_Vote_Result_History.Init (Depth => 100);
-      Self.Voted_Ang_Vel_Body_History.Init (Depth => 100);
    end Init_Base;
 
    procedure Final_Base (Self : in out Instance) is
@@ -38,7 +36,6 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       Self.Invalid_Parameter_Received_History.Destroy;
       -- Data product histories:
       Self.Majority_Vote_Result_History.Destroy;
-      Self.Voted_Ang_Vel_Body_History.Destroy;
    end Final_Base;
 
    ---------------------------------------
@@ -205,13 +202,6 @@ package body Component.Mimu_Majority_Vote.Implementation.Tester is
       -- Push the argument onto the test history for looking at later:
       Self.Majority_Vote_Result_History.Push (Arg);
    end Majority_Vote_Result;
-
-   -- Fault-excluded averaged angular velocity in body frame.
-   overriding procedure Voted_Ang_Vel_Body (Self : in out Instance; Arg : in Packed_F32x3_Record.T) is
-   begin
-      -- Push the argument onto the test history for looking at later:
-      Self.Voted_Ang_Vel_Body_History.Push (Arg);
-   end Voted_Ang_Vel_Body;
 
    -----------------------------------------------
    -- Special primitives for aiding in the staging,

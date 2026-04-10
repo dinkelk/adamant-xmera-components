@@ -72,8 +72,8 @@ package body Mimu_Majority_Vote_Tests.Implementation is
       -- Send tick to trigger algorithm
       T.Tick_T_Send ((Time => T.System_Time, Count => 0));
 
-      -- Verify data products were produced (Majority_Vote_Result + Voted_Ang_Vel_Body)
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
+      -- Verify data product was produced:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Majority_Vote_Result_History.Get_Count, 1);
 
       -- Check output: simple average, no fault
@@ -104,8 +104,8 @@ package body Mimu_Majority_Vote_Tests.Implementation is
       -- Send tick to trigger algorithm
       T.Tick_T_Send ((Time => T.System_Time, Count => 0));
 
-      -- Verify second set of data products was produced
-      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 4);
+      -- Verify second data product was produced:
+      Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 2);
       Natural_Assert.Eq (T.Majority_Vote_Result_History.Get_Count, 2);
 
       -- Check output: fault-excluded average of IMU 1 and IMU 3

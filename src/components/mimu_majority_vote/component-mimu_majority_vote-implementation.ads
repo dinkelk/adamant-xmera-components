@@ -78,7 +78,8 @@ private
    -- to be implemented here.
    overriding function Validate_Parameters (
       Self : in out Instance;
-      Omega_Threshold : in Packed_F32.U
+      Omega_Threshold : in Packed_F32.U;
+      Fault_Persistence_Limit : in Packed_U32.U
    ) return Parameter_Validation_Status.E is (Parameter_Validation_Status.Valid);
 
    -----------------------------------------------

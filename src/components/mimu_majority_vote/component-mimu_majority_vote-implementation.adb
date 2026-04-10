@@ -9,12 +9,8 @@ with Algorithm_Wrapper_Util;
 
 package body Component.Mimu_Majority_Vote.Implementation is
 
-   -- Number of active IMUs passed to the majority vote algorithm. The algorithm
-   -- compares angular velocity inputs, detects outliers above a threshold, and
-   -- recomputes the average excluding faulted inputs. This wrapper constrains
-   -- the number of active IMUs to 3, although the algorithm can support more.
-   Num_Active_Imus : constant := MAX_IMU_VEH_COUNT - 1;
-   pragma Compile_Time_Error (Num_Active_Imus /= 3,
+   -- Compile-time check that the algorithm uses exactly 3 IMUs.
+   pragma Compile_Time_Error (MIMU_COUNT /= 3,
       "This wrapper requires exactly 3 active IMUs");
 
    --------------------------------------------------
@@ -76,22 +72,15 @@ package body Component.Mimu_Majority_Vote.Implementation is
             -- Call the C algorithm:
             Result : constant Mimu_Majority_Vote_Output.C.U_C := Update (
                Self.Alg,
-               Imu_Inputs     => Imu_Inputs,
-               Number_Of_Imus => Num_Active_Imus
+               Imu_Inputs     => Imu_Inputs
             );
             Packed_Result : constant Mimu_Majority_Vote_Output.T :=
                Mimu_Majority_Vote_Output.Pack (Mimu_Majority_Vote_Output.C.To_Ada (Result));
          begin
-            -- Publish full result with fault status:
+            -- Publish result with fault status:
             Self.Data_Product_T_Send (Self.Data_Products.Majority_Vote_Result (
                Arg.Time,
                Packed_Result
-            ));
-
-            -- Publish fault-excluded averaged angular velocity:
-            Self.Data_Product_T_Send (Self.Data_Products.Voted_Ang_Vel_Body (
-               Arg.Time,
-               (Value => Packed_Result.Avg_Ang_Vel_Body)
             ));
          end;
       end if;
@@ -114,6 +103,7 @@ package body Component.Mimu_Majority_Vote.Implementation is
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
    begin
       Set_Omega_Threshold (Self.Alg, Self.Omega_Threshold.Value);
+      Set_Fault_Persistence_Limit (Self.Alg, Self.Fault_Persistence_Limit.Value);
    end Update_Parameters_Action;
 
    -- Invalid Parameter handler. This procedure is called when a parameter's type is found to be invalid:
