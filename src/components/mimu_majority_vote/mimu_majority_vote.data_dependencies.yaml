@@ -1,0 +1,12 @@
+---
+description: Data dependencies for the MIMU Majority Vote component.
+data_dependencies:
+  - name: Imu_1_Body
+    type: Averaged_Imu_Data.T
+    description: "Averaged IMU body frame data from IMU 1"
+  - name: Imu_2_Body
+    type: Averaged_Imu_Data.T
+    description: "Averaged IMU body frame data from IMU 2"
+  - name: Imu_3_Body
+    type: Averaged_Imu_Data.T
+    description: "Averaged IMU body frame data from IMU 3"

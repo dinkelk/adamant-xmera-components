@@ -1,0 +1,13 @@
+---
+#  typedef struct {
+#      Vector3f_c sigma_BN;
+#      Vector3f_c omega_BN_B;
+#  } AttNavInput_c;
+description: Navigation attitude input for attitude tracking error algorithm.
+fields:
+  - name: Sigma_Bn
+    type: Packed_F32x3.T
+    description: "MRP attitude of body w.r.t. inertial frame"
+  - name: Omega_Bn_B
+    type: Packed_F32x3.T
+    description: "[rad/s] Angular velocity of body w.r.t. inertial, body frame components"

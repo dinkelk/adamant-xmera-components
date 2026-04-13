@@ -1,0 +1,7 @@
+---
+description: This is a unit test suite for the Mimu Majority Vote component
+tests:
+  - name: Test
+    description: Run algorithm to ensure integration is sound.
+  - name: Test_Invalid_Parameter
+    description: Test that an invalid parameter throws the appropriate event.

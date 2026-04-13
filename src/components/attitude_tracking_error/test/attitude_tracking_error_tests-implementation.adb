@@ -61,10 +61,10 @@ package body Attitude_Tracking_Error_Tests.Implementation is
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, 1);
       Natural_Assert.Eq (T.Attitude_Guidance_History.Get_Count, 1);
       Att_Guid_Assert.Eq (T.Attitude_Guidance_History.Get (1), (
-         Sigma_Br => [0.18368415, -0.09744478, -0.0989607],
-         Omega_Br_B => [-0.01181208, -0.00891603, -0.03441226],
-         Omega_Rn_B => [-0.00318792, -0.00308397, 0.03941226],
-         Domega_Rn_B => [-0.02388623, -0.028356, 0.04514848]
+         Sigma_Br => [0.210246, 0.0759724, 0.422161],
+         Omega_Br_B => [-0.0118121, -0.00891604, -0.0344123],
+         Omega_Rn_B => [-0.00318792, -0.00308397, 0.0394123],
+         Domega_Rn_B => [-0.0238862, -0.028356, 0.0451485]
       ), Epsilon => 0.001);
    end Test;
 

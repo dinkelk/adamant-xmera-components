@@ -1,0 +1,6 @@
+---
+description: Data products for the MIMU Majority Vote component.
+data_products:
+  - name: Majority_Vote_Result
+    type: Mimu_Majority_Vote_Output.T
+    description: Majority vote output containing averaged angular velocity and fault detection status.
