@@ -4,10 +4,9 @@ pragma Style_Checks (Off);
 pragma Warnings     (Off, "-gnatwu");
 
 with Interfaces.C;         use Interfaces; use Interfaces.C;
+with Att_Nav_Input.C;
 with Att_Ref.C;
-with Nav_Att.C;
 with Att_Guid.C;
-with Packed_F32x3_Record.C;
 
 package Att_Tracking_Error_Algorithm_C is
 
@@ -30,34 +29,18 @@ package Att_Tracking_Error_Algorithm_C is
           External_Name => "AttTrackingErrorAlgorithm_destroy";
 
    --* @brief Run the update step of the attitude tracking error algorithm.
-   --* @param Self       The algorithm instance.
-   --* @param Att_Ref_In Pointer to reference-frame message payload.
-   --* @param Att_Nav_In Pointer to navigation attitude message payload.
-   --* @return Computed guidance message payload.
+   --* @param Self    The algorithm instance.
+   --* @param Nav_In  Navigation attitude input (sigma_BN, omega_BN_B).
+   --* @param Ref_In  Reference attitude input (sigma_RN, omega_RN_N, domega_RN_N).
+   --* @return Computed guidance output.
    function Update
-     (Self       : Att_Tracking_Error_Algorithm_Access;
-      Att_Ref_In : Att_Ref.C.U_C_Access;
-      Att_Nav_In : Nav_Att.C.U_C_Access)
+     (Self   : Att_Tracking_Error_Algorithm_Access;
+      Nav_In : Att_Nav_Input.C.U_C;
+      Ref_In : Att_Ref.C.U_C)
      return Att_Guid.C.U_C
      with Import       => True,
           Convention   => C,
           External_Name => "AttTrackingErrorAlgorithm_update";
-
-   --* @brief Set the σ_R0R three-vector.
-   procedure Set_Sigma_R0R
-     (Self      : Att_Tracking_Error_Algorithm_Access;
-      Sigma_R0R : Packed_F32x3_Record.C.U_C)
-     with Import       => True,
-          Convention   => C,
-          External_Name => "AttTrackingErrorAlgorithm_setSigma_R0R";
-
-   --* @brief Get the current σ_R0R three-vector.
-   function Get_Sigma_R0R
-     (Self : Att_Tracking_Error_Algorithm_Access)
-     return Packed_F32x3_Record.C.U_C
-     with Import       => True,
-          Convention   => C,
-          External_Name => "AttTrackingErrorAlgorithm_getSigma_R0R";
 
 private
 
