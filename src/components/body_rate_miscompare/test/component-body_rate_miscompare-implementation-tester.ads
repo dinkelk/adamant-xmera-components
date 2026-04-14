@@ -11,7 +11,7 @@ with Data_Product.Representation;
 with Data_Product;
 with Nav_Att.Representation;
 with Body_Rate_Fault.Representation;
-with Packed_F32x3_Record;
+with Mimu_Majority_Vote_Output;
 with St_Att_Input;
 
 -- Compares IMU and star tracker body rates and falls back to IMU solution if they
@@ -41,7 +41,7 @@ package Component.Body_Rate_Miscompare.Implementation.Tester is
       -- Data dependency return values. These can be set during unit test
       -- and will be returned to the component when a data dependency call
       -- is made.
-      Imu_Body : Packed_F32x3_Record.T;
+      Imu_Body : Mimu_Majority_Vote_Output.T;
       Star_Tracker_Attitude : St_Att_Input.T;
       -- The return status for the data dependency fetch. This can be set
       -- during unit test to return something other than Success.
@@ -55,7 +55,7 @@ package Component.Body_Rate_Miscompare.Implementation.Tester is
       -- value of this variable is returned.
       Data_Dependency_Return_Length_Override : Data_Product_Types.Data_Product_Buffer_Length_Type := 0;
       -- The timestamp to return with the data dependency. If this is set to (0, 0) then
-      -- the system_Time (above) is returned, otherwise, the value of this variable is returned.
+      -- the System_Time (above) is returned, otherwise, the value of this variable is returned.
       Data_Dependency_Timestamp_Override : Sys_Time.T := (0, 0);
    end record;
    type Instance_Access is access all Instance;

@@ -38,7 +38,7 @@ package body Component.Body_Rate_Miscompare.Implementation is
       -- All return values besides Success indicate that this component is not
       -- wired up correctly in the algorithm execution order and received errant,
       -- stale, or no data. This should never happen, so we assert.
-      Imu_Body : Packed_F32x3_Record.T;
+      Imu_Body : Mimu_Majority_Vote_Output.T;
       Imu_Body_Status : constant Data_Dependency_Status.E :=
          Self.Get_Imu_Body (Value => Imu_Body, Stale_Reference => Arg.Time);
       pragma Assert (Imu_Body_Status = Success);
@@ -52,7 +52,7 @@ package body Component.Body_Rate_Miscompare.Implementation is
 
       -- Call algorithm with angular velocity vectors:
       declare
-         Imu_Omega : constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.Unpack (Imu_Body.Value));
+         Imu_Omega : constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.Unpack (Imu_Body.Avg_Ang_Vel_Body));
          St_Omega : constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.Unpack (St_Body.Omega_Bn_B));
 
          Output : constant Body_Rate_Miscompare_Output_C := Update (

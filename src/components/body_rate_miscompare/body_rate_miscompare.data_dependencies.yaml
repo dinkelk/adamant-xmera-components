@@ -2,8 +2,8 @@
 description: Data dependencies for the Body Rate Miscompare component.
 data_dependencies:
   - name: Imu_Body
-    type: Packed_F32x3_Record.T
-    description: Fault-excluded averaged angular velocity in body frame from majority vote
+    type: Mimu_Majority_Vote_Output.T
+    description: Majority vote output containing averaged angular velocity and fault status
   - name: Star_Tracker_Attitude
     type: St_Att_Input.T
     description: Star tracker attitude measurement (time tag, MRP, angular velocity)
