@@ -16,6 +16,12 @@ package body Component.Body_Rate_Miscompare.Implementation is
    begin
       -- Allocate C++ class on the heap
       Self.Alg := Create;
+
+      -- Sync the Ada-side parameter default into the C algorithm so its
+      -- threshold matches component state before the first tick. The C
+      -- constructor value-initializes the threshold to 0.0, which would
+      -- otherwise flag every non-zero rate diff as a miscompare.
+      Set_Body_Rate_Threshold (Self.Alg, Self.Body_Rate_Threshold.Value);
    end Init;
 
    not overriding procedure Destroy (Self : in out Instance) is
