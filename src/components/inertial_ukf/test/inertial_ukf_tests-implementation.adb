@@ -7,7 +7,7 @@ with Basic_Assertions; use Basic_Assertions;
 with Packed_F32x3;
 with Packed_F32x3.Assertion; use Packed_F32x3.Assertion;
 with Component.Inertial_Ukf.Implementation.Tester;
-with Nav_Att_Output;
+with Nav_Att;
 with Inertial_Filter_Output;
 with Rw_Array_Config_Input;
 with Vehicle_Config_Input;
@@ -76,17 +76,16 @@ package body Inertial_Ukf_Tests.Implementation is
          Expected_Sigma  : constant Packed_F32x3.T := [0.1, -0.2, 0.3];
          Expected_Omega  : constant Packed_F32x3.T := [0.01, -0.02, 0.03];
          Time_Tag_In     : constant Short_Float     := 1.5;
-         Nav_Out         : Nav_Att_Output.T;
+         Nav_Out         : Nav_Att.T;
          Filter_Out      : Inertial_Filter_Output.T;
       begin
          -- Set data dependency values using packed record aggregates directly.
          T.Star_Tracker_Att := (
-            Time_Tag        => Long_Float (Time_Tag_In),
-            Sigma_Bn        => Expected_Sigma,
-            Omega_Bn_B      => Expected_Omega,
-            Veh_Sun_Pnt_Bdy => Zero_Vec);
-         T.Gyro_Measurement := (Gyro_B => Zero_Vec);
-         T.Rw_Speeds        := (Wheel_Speeds => [0.0, 0.0, 0.0, 0.0]);
+            Time_Tag      => Time_Tag_In,
+            Mrp_Bdy_Inrtl => Expected_Sigma,
+            Omega_Bn_B    => Expected_Omega
+         );
+         T.Rw_Speeds := (Rwa_1 => 0.0, Rwa_2 => 0.0, Rwa_3 => 0.0, Rwa_4 => 0.0);
 
          -- Trigger component execution.
          T.Tick_T_Send ((Time => T.System_Time, Count => 0));
@@ -119,14 +118,14 @@ package body Inertial_Ukf_Tests.Implementation is
       -----------------------------------------------------------------------
 
       declare
-         Nav_Out    : Nav_Att_Output.T;
+         Nav_Out    : Nav_Att.T;
          Filter_Out : Inertial_Filter_Output.T;
       begin
          T.Star_Tracker_Att := (
-            Time_Tag        => 0.0,
-            Sigma_Bn        => Zero_Vec,
-            Omega_Bn_B      => Zero_Vec,
-            Veh_Sun_Pnt_Bdy => Zero_Vec);
+            Time_Tag      => 0.0,
+            Mrp_Bdy_Inrtl => Zero_Vec,
+            Omega_Bn_B    => Zero_Vec
+         );
 
          T.Tick_T_Send ((Time => T.System_Time, Count => 0));
 

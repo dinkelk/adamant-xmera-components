@@ -4,16 +4,15 @@
 
 with Nav_Att;
 with St_Att_Input.C;
-with Gyro_Input;
+with St_Att_Input;
 with Gyro_Input.C;
-with Rw_Speeds_Input;
+with Rwa_Speeds;
 with Rw_Speeds_Input.C;
 with Rw_Array_Config_Input.C;
 with Vehicle_Config_Input.C;
-with Nav_Att_Output.C;
+with Nav_Att.C;
 with Inertial_Filter_Output.C;
 with Inertial_UKF_Algorithm_C; use Inertial_UKF_Algorithm_C;
-with Algorithm_Wrapper_Util;
 
 package body Component.Inertial_Ukf.Implementation is
 
@@ -34,74 +33,69 @@ package body Component.Inertial_Ukf.Implementation is
    overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is
       use Data_Product_Enums;
       use Data_Product_Enums.Data_Dependency_Status;
-      use Algorithm_Wrapper_Util;
 
       -- Fetch data dependencies:
-      St_Tracker_Att : Nav_Att.T;
+      --
+      -- Data_Dependency_Status.E can be Success, Not_Available, Error, or Stale.
+      -- All return values besides Success indicate that this component is not
+      -- wired up correctly in the algorithm execution order and received errant,
+      -- stale, or no data. This should never happen, so we assert.
+      St_Tracker_Att : St_Att_Input.T;
       St_Tracker_Att_Status : constant Data_Dependency_Status.E :=
          Self.Get_Star_Tracker_Att (Value => St_Tracker_Att, Stale_Reference => Arg.Time);
+      pragma Assert (St_Tracker_Att_Status = Success);
 
-      Gyro_Meas : Gyro_Input.T;
-      Gyro_Meas_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Gyro_Measurement (Value => Gyro_Meas, Stale_Reference => Arg.Time);
-
-      Rw_Speeds_Dep : Rw_Speeds_Input.T;
+      Rw_Speeds_Dep : Rwa_Speeds.T;
       Rw_Speeds_Status : constant Data_Dependency_Status.E :=
          Self.Get_Rw_Speeds (Value => Rw_Speeds_Dep, Stale_Reference => Arg.Time);
+      pragma Assert (Rw_Speeds_Status = Success);
    begin
       -- Update the parameters:
       Self.Update_Parameters;
 
-      if Is_Dep_Status_Success (St_Tracker_Att_Status) and then
-         Is_Dep_Status_Success (Gyro_Meas_Status) and then
-         Is_Dep_Status_Success (Rw_Speeds_Status)
-      then
-         declare
-            -- Convert star tracker attitude from Nav_Att.T to St_Att_Input.C.U_C.
-            -- Nav_Att has an extra vehSunPntBdy field not needed by the algorithm.
-            Nav_Att_U : constant Nav_Att.U := Nav_Att.Unpack (St_Tracker_Att);
-            St_Att_C : aliased St_Att_Input.C.U_C := St_Att_Input.C.To_C ((
-               Time_Tag      => Short_Float (Nav_Att_U.Time_Tag),
-               Mrp_Bdy_Inrtl => Nav_Att_U.Sigma_Bn,
-               Omega_Bn_B    => Nav_Att_U.Omega_Bn_B
-            ));
+      declare
+         -- Convert star tracker attitude to C type:
+         St_Att_C : aliased St_Att_Input.C.U_C :=
+            St_Att_Input.C.To_C (St_Att_Input.Unpack (St_Tracker_Att));
 
-            -- Convert gyro measurement:
-            Gyro_C : aliased Gyro_Input.C.U_C :=
-               Gyro_Input.C.To_C (Gyro_Input.Unpack (Gyro_Meas));
+         -- Hard-code gyro measurement to zero (gyro dependency removed):
+         Gyro_C : aliased Gyro_Input.C.U_C := (
+            Gyro_B => [0.0, 0.0, 0.0]
+         );
 
-            -- Convert reaction wheel speeds:
-            Rw_C : aliased Rw_Speeds_Input.C.U_C :=
-               Rw_Speeds_Input.C.To_C (Rw_Speeds_Input.Unpack (Rw_Speeds_Dep));
+         -- Convert reaction wheel speeds from Rwa_Speeds:
+         Rw_C : aliased Rw_Speeds_Input.C.U_C := (
+            Wheel_Speeds => [Rw_Speeds_Dep.Rwa_1, Rw_Speeds_Dep.Rwa_2,
+                              Rw_Speeds_Dep.Rwa_3, Rw_Speeds_Dep.Rwa_4]
+         );
 
-            -- Convert parameters to C types:
-            Rw_Config_C : aliased Rw_Array_Config_Input.C.U_C :=
-               Rw_Array_Config_Input.C.To_C (Self.Rw_Array_Config);
-            Veh_Config_C : aliased Vehicle_Config_Input.C.U_C :=
-               Vehicle_Config_Input.C.To_C (Self.Vehicle_Config);
+         -- Convert parameters to C types:
+         Rw_Config_C : aliased Rw_Array_Config_Input.C.U_C :=
+            Rw_Array_Config_Input.C.To_C (Self.Rw_Array_Config);
+         Veh_Config_C : aliased Vehicle_Config_Input.C.U_C :=
+            Vehicle_Config_Input.C.To_C (Self.Vehicle_Config);
 
-            -- Call the stateless UKF algorithm:
-            Output : constant Inertial_UKF_Output := Update_State (
-               St_Att     => St_Att_C'Unchecked_Access,
-               Gyro       => Gyro_C'Unchecked_Access,
-               Rw_Speeds  => Rw_C'Unchecked_Access,
-               Rw_Config  => Rw_Config_C'Unchecked_Access,
-               Veh_Config => Veh_Config_C'Unchecked_Access
-            );
-         begin
-            -- Publish navigation attitude estimate:
-            Self.Data_Product_T_Send (Self.Data_Products.Nav_Att_Estimate (
-               Arg.Time,
-               Nav_Att_Output.C.Pack (Output.Nav_Att)
-            ));
+         -- Call the stateless UKF algorithm:
+         Output : constant Inertial_UKF_Output := Update_State (
+            St_Att     => St_Att_C'Unchecked_Access,
+            Gyro       => Gyro_C'Unchecked_Access,
+            Rw_Speeds  => Rw_C'Unchecked_Access,
+            Rw_Config  => Rw_Config_C'Unchecked_Access,
+            Veh_Config => Veh_Config_C'Unchecked_Access
+         );
+      begin
+         -- Publish navigation attitude estimate:
+         Self.Data_Product_T_Send (Self.Data_Products.Nav_Att_Estimate (
+            Arg.Time,
+            Nav_Att.C.Pack (Output.Nav_Att_Est)
+         ));
 
-            -- Publish filter diagnostic data:
-            Self.Data_Product_T_Send (Self.Data_Products.Filter_Data (
-               Arg.Time,
-               Inertial_Filter_Output.C.Pack (Output.Filter)
-            ));
-         end;
-      end if;
+         -- Publish filter diagnostic data:
+         Self.Data_Product_T_Send (Self.Data_Products.Filter_Data (
+            Arg.Time,
+            Inertial_Filter_Output.C.Pack (Output.Filter)
+         ));
+      end;
    end Tick_T_Recv_Sync;
 
    -- The parameter update connector.

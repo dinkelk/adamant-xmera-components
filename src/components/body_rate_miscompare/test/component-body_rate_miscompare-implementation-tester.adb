@@ -75,9 +75,9 @@ package body Component.Body_Rate_Miscompare.Implementation.Tester is
       if Length_To_Return = 0 then
          case Arg.Id is
             -- Length for Imu_Body:
-            when 0 => Length_To_Return := Imu_Sensor_Body.Size_In_Bytes;
+            when 0 => Length_To_Return := Mimu_Majority_Vote_Output.Size_In_Bytes;
             -- Length for Star_Tracker_Attitude:
-            when 1 => Length_To_Return := St_Att.Size_In_Bytes;
+            when 1 => Length_To_Return := St_Att_Input.Size_In_Bytes;
             -- If ID can not be found, then return ID out of range error.
             when others =>
                if Return_Status = Data_Product_Enums.Fetch_Status.Success then
@@ -96,12 +96,12 @@ package body Component.Body_Rate_Miscompare.Implementation.Tester is
          case Arg.Id is
             -- Length for Imu_Body:
             when 0 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Imu_Sensor_Body.Size_In_Bytes - 1) :=
-                  Imu_Sensor_Body.Serialization.To_Byte_Array (Self.Imu_Body);
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Mimu_Majority_Vote_Output.Size_In_Bytes - 1) :=
+                  Mimu_Majority_Vote_Output.Serialization.To_Byte_Array (Self.Imu_Body);
             -- Length for Star_Tracker_Attitude:
             when 1 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + St_Att.Size_In_Bytes - 1) :=
-                  St_Att.Serialization.To_Byte_Array (Self.Star_Tracker_Attitude);
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + St_Att_Input.Size_In_Bytes - 1) :=
+                  St_Att_Input.Serialization.To_Byte_Array (Self.Star_Tracker_Attitude);
             -- Do not fill. The ID is not recognized.
             when others =>
                Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;

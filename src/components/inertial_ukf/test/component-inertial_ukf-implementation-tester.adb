@@ -61,10 +61,8 @@ package body Component.Inertial_Ukf.Implementation.Tester is
          case Arg.Id is
             -- ID for Star_Tracker_Att:
             when 0 => Id_To_Return := 0;
-            -- ID for Gyro_Measurement:
-            when 1 => Id_To_Return := 1;
             -- ID for Rw_Speeds:
-            when 2 => Id_To_Return := 2;
+            when 1 => Id_To_Return := 1;
             -- If ID can not be found, then return ID out of range error.
             when others =>
                if Return_Status = Data_Product_Enums.Fetch_Status.Success then
@@ -77,11 +75,9 @@ package body Component.Inertial_Ukf.Implementation.Tester is
       if Length_To_Return = 0 then
          case Arg.Id is
             -- Length for Star_Tracker_Att:
-            when 0 => Length_To_Return := Nav_Att.Size_In_Bytes;
-            -- Length for Gyro_Measurement:
-            when 1 => Length_To_Return := Gyro_Input.Size_In_Bytes;
+            when 0 => Length_To_Return := St_Att_Input.Size_In_Bytes;
             -- Length for Rw_Speeds:
-            when 2 => Length_To_Return := Rw_Speeds_Input.Size_In_Bytes;
+            when 1 => Length_To_Return := Rwa_Speeds.Size_In_Bytes;
             -- If ID can not be found, then return ID out of range error.
             when others =>
                if Return_Status = Data_Product_Enums.Fetch_Status.Success then
@@ -98,18 +94,14 @@ package body Component.Inertial_Ukf.Implementation.Tester is
       -- Fill the data product buffer:
       if Return_Status = Data_Product_Enums.Fetch_Status.Success then
          case Arg.Id is
-            -- Length for Star_Tracker_Att:
+            -- Data for Star_Tracker_Att:
             when 0 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Nav_Att.Size_In_Bytes - 1) :=
-                  Nav_Att.Serialization.To_Byte_Array (Self.Star_Tracker_Att);
-            -- Length for Gyro_Measurement:
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + St_Att_Input.Size_In_Bytes - 1) :=
+                  St_Att_Input.Serialization.To_Byte_Array (Self.Star_Tracker_Att);
+            -- Data for Rw_Speeds:
             when 1 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Gyro_Input.Size_In_Bytes - 1) :=
-                  Gyro_Input.Serialization.To_Byte_Array (Self.Gyro_Measurement);
-            -- Length for Rw_Speeds:
-            when 2 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Rw_Speeds_Input.Size_In_Bytes - 1) :=
-                  Rw_Speeds_Input.Serialization.To_Byte_Array (Self.Rw_Speeds);
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Rwa_Speeds.Size_In_Bytes - 1) :=
+                  Rwa_Speeds.Serialization.To_Byte_Array (Self.Rw_Speeds);
             -- Do not fill. The ID is not recognized.
             when others =>
                Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;
@@ -158,7 +150,7 @@ package body Component.Inertial_Ukf.Implementation.Tester is
    --    Data products for the Inertial UKF component.
    -- Navigation attitude estimate (time tag, MRP body-to-inertial, angular rate, sun
    -- vector).
-   overriding procedure Nav_Att_Estimate (Self : in out Instance; Arg : in Nav_Att_Output.T) is
+   overriding procedure Nav_Att_Estimate (Self : in out Instance; Arg : in Nav_Att.T) is
    begin
       -- Push the argument onto the test history for looking at later:
       Self.Nav_Att_Estimate_History.Push (Arg);

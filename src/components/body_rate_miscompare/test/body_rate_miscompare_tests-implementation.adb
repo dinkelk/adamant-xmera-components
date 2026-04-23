@@ -2,6 +2,7 @@
 -- Body_Rate_Miscompare Tests Body
 --------------------------------------------------------------------------------
 
+with Interfaces; use Interfaces;
 with Basic_Assertions; use Basic_Assertions;
 with Nav_Att;
 with Body_Rate_Fault;
@@ -69,20 +70,18 @@ package body Body_Rate_Miscompare_Tests.Implementation is
       ];
    begin
       for I in Test_Cases'Range loop
-         -- Set IMU sensor body data dependency
+         -- Set IMU angular velocity data dependency
          T.Imu_Body := (
-            Dv_Frame_Body => [0.0, 0.0, 0.0],
-            Accel_Body => [0.0, 0.0, 0.0],
-            Dr_Frame_Body => [0.0, 0.0, 0.0],
-            Ang_Vel_Body => Test_Cases (I).Imu_Angular_Velocity
+            Avg_Ang_Vel_Body => Test_Cases (I).Imu_Angular_Velocity,
+            Fault_Detected => 0,
+            Mimu_Index_Faulted => -1
          );
 
          -- Set star tracker attitude data dependency
          T.Star_Tracker_Attitude := (
             Time_Tag => 0.0,
             Mrp_Bdy_Inrtl => [0.0, 0.0, 0.0],
-            Omega_Bn_B => Test_Cases (I).St_Angular_Velocity,
-            Dcm_Cb => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            Omega_Bn_B => Test_Cases (I).St_Angular_Velocity
          );
 
          -- Call algorithm:

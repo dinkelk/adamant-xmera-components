@@ -2,8 +2,8 @@
 description: Data dependencies for the Body Rate Miscompare component.
 data_dependencies:
   - name: Imu_Body
-    type: Imu_Sensor_Body.T
-    description: IMU sensor body frame measurements including angular velocity
+    type: Mimu_Majority_Vote_Output.T
+    description: Majority vote output containing averaged angular velocity and fault status
   - name: Star_Tracker_Attitude
-    type: St_Att.T
-    description: Star tracker attitude measurement including body rates
+    type: St_Att_Input.T
+    description: Star tracker attitude measurement (time tag, MRP, angular velocity)

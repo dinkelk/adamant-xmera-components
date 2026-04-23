@@ -9,11 +9,10 @@ with Data_Product_Return.Representation;
 with Data_Product_Fetch.Representation;
 with Data_Product.Representation;
 with Data_Product;
-with Nav_Att_Output.Representation;
+with Nav_Att.Representation;
 with Inertial_Filter_Output.Representation;
-with Nav_Att;
-with Gyro_Input;
-with Rw_Speeds_Input;
+with St_Att_Input;
+with Rwa_Speeds;
 
 -- Inertial UKF algorithm computes the navigation attitude estimate from star
 -- tracker, gyro, and reaction wheel measurements.
@@ -26,7 +25,7 @@ package Component.Inertial_Ukf.Implementation.Tester is
    package Data_Product_T_Recv_Sync_History_Package is new Printable_History (Data_Product.T, Data_Product.Representation.Image);
 
    -- Data product history packages:
-   package Nav_Att_Estimate_History_Package is new Printable_History (Nav_Att_Output.T, Nav_Att_Output.Representation.Image);
+   package Nav_Att_Estimate_History_Package is new Printable_History (Nav_Att.T, Nav_Att.Representation.Image);
    package Filter_Data_History_Package is new Printable_History (Inertial_Filter_Output.T, Inertial_Filter_Output.Representation.Image);
 
    -- Component class instance:
@@ -42,9 +41,8 @@ package Component.Inertial_Ukf.Implementation.Tester is
       -- Data dependency return values. These can be set during unit test
       -- and will be returned to the component when a data dependency call
       -- is made.
-      Star_Tracker_Att : Nav_Att.T;
-      Gyro_Measurement : Gyro_Input.T;
-      Rw_Speeds : Rw_Speeds_Input.T;
+      Star_Tracker_Att : St_Att_Input.T;
+      Rw_Speeds : Rwa_Speeds.T;
       -- The return status for the data dependency fetch. This can be set
       -- during unit test to return something other than Success.
       Data_Dependency_Return_Status_Override : Data_Product_Enums.Fetch_Status.E := Data_Product_Enums.Fetch_Status.Success;
@@ -88,7 +86,7 @@ package Component.Inertial_Ukf.Implementation.Tester is
    --    Data products for the Inertial UKF component.
    -- Navigation attitude estimate (time tag, MRP body-to-inertial, angular rate, sun
    -- vector).
-   overriding procedure Nav_Att_Estimate (Self : in out Instance; Arg : in Nav_Att_Output.T);
+   overriding procedure Nav_Att_Estimate (Self : in out Instance; Arg : in Nav_Att.T);
    -- Inertial filter diagnostic data (time tag, number of observations).
    overriding procedure Filter_Data (Self : in out Instance; Arg : in Inertial_Filter_Output.T);
 

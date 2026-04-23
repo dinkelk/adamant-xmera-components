@@ -6,7 +6,6 @@ with Att_Nav_Input.C;
 with Att_Ref.C;
 with Att_Guid.C;
 with Packed_F32x3.C;
-with Algorithm_Wrapper_Util;
 
 package body Component.Attitude_Tracking_Error.Implementation is
 
@@ -33,43 +32,41 @@ package body Component.Attitude_Tracking_Error.Implementation is
    overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is
       use Data_Product_Enums;
       use Data_Product_Enums.Data_Dependency_Status;
-      use Algorithm_Wrapper_Util;
 
       -- Grab data dependencies:
+      --
+      -- Data_Dependency_Status.E can be Success, Not_Available, Error, or Stale.
+      -- All return values besides Success indicate that this component is not
+      -- wired up correctly in the algorithm execution order and received errant,
+      -- stale, or no data. This should never happen, so we assert.
       Ref : Att_Ref.T;
       Ref_Status : constant Data_Dependency_Status.E :=
          Self.Get_Attitude_Reference (Value => Ref, Stale_Reference => Arg.Time);
+      pragma Assert (Ref_Status = Success);
       Nav : Nav_Att.T;
       Nav_Status : constant Data_Dependency_Status.E :=
          Self.Get_Navigation_Attitude (Value => Nav, Stale_Reference => Arg.Time);
-   begin
-      if Is_Dep_Status_Success (Ref_Status) and then
-         Is_Dep_Status_Success (Nav_Status)
-      then
-         declare
-            -- Extract nav fields needed by the algorithm (no timeTag or vehSunPntBdy):
-            Nav_C : constant Att_Nav_Input.C.U_C := (
-               Sigma_Bn => Packed_F32x3.C.Unpack (Nav.Sigma_Bn),
-               Omega_Bn_B => Packed_F32x3.C.Unpack (Nav.Omega_Bn_B)
-            );
-            Ref_C : constant Att_Ref.C.U_C := Att_Ref.C.To_C (Att_Ref.Unpack (Ref));
+      pragma Assert (Nav_Status = Success);
 
-            -- Call algorithm (pass by value):
-            Guid : constant Att_Guid.C.U_C := Update (
-               Self.Alg,
-               Nav_In => Nav_C,
-               Ref_In => Ref_C
-            );
-         begin
-            -- Send out data product:
-            Self.Data_Product_T_Send (Self.Data_Products.Attitude_Guidance (
-               Arg.Time,
-               Att_Guid.Pack (Att_Guid.C.To_Ada (Guid))
-            ));
-         end;
-      else
-         null; -- TODO, assert, throw event?
-      end if;
+      -- Extract nav fields needed by the algorithm (no timeTag or vehSunPntBdy):
+      Nav_C : constant Att_Nav_Input.C.U_C := (
+         Sigma_Bn => Packed_F32x3.C.Unpack (Nav.Sigma_Bn),
+         Omega_Bn_B => Packed_F32x3.C.Unpack (Nav.Omega_Bn_B)
+      );
+      Ref_C : constant Att_Ref.C.U_C := Att_Ref.C.To_C (Att_Ref.Unpack (Ref));
+
+      -- Call algorithm (pass by value):
+      Guid : constant Att_Guid.C.U_C := Update (
+         Self.Alg,
+         Nav_In => Nav_C,
+         Ref_In => Ref_C
+      );
+   begin
+      -- Send out data product:
+      Self.Data_Product_T_Send (Self.Data_Products.Attitude_Guidance (
+         Arg.Time,
+         Att_Guid.Pack (Att_Guid.C.To_Ada (Guid))
+      ));
    end Tick_T_Recv_Sync;
 
    -----------------------------------------------
