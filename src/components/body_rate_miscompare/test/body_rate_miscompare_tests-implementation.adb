@@ -8,6 +8,11 @@ with Nav_Att;
 with Body_Rate_Fault;
 with Packed_F32x3.Assertion; use Packed_F32x3.Assertion;
 with Body_Rate_Fault.Assertion; use Body_Rate_Fault.Assertion;
+with Packed_F32;
+with Body_Rate_Miscompare_Parameters;
+with Parameter_Enums.Assertion;
+use Parameter_Enums.Parameter_Update_Status;
+use Parameter_Enums.Assertion;
 
 package body Body_Rate_Miscompare_Tests.Implementation is
 
@@ -44,6 +49,11 @@ package body Body_Rate_Miscompare_Tests.Implementation is
    -- Run algorithm to ensure integration is sound.
    overriding procedure Test (Self : in out Instance) is
       T : Component.Body_Rate_Miscompare.Implementation.Tester.Instance_Access renames Self.Tester;
+      Params : Body_Rate_Miscompare_Parameters.Instance;
+
+      -- Match the default in body_rate_miscompare.parameters.yaml; stage explicitly so the C-side
+      -- bodyRateThreshold (which defaults to 0.0 in C++) gets initialized via Update_Parameters_Action.
+      Threshold : constant Packed_F32.T := (Value => 1.0);
 
       -- Test data based on Python test
       type Test_Vector is record
@@ -69,6 +79,10 @@ package body Body_Rate_Miscompare_Tests.Implementation is
           Expected_Fault => True)
       ];
    begin
+      -- Stage and apply the threshold parameter:
+      Parameter_Update_Status_Assert.Eq (T.Stage_Parameter (Params.Body_Rate_Threshold (Threshold)), Success);
+      Parameter_Update_Status_Assert.Eq (T.Update_Parameters, Success);
+
       for I in Test_Cases'Range loop
          -- Set IMU angular velocity data dependency
          T.Imu_Body := (

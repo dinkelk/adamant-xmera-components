@@ -1,0 +1,25 @@
+---
+description: Converts the star tracker case-frame attitude and angular velocity to the spacecraft body frame using a fixed platform-to-body DCM.
+execution: passive
+init:
+  description: Initializes the convert star tracker platform to body algorithm.
+connectors:
+  - description: Run the algorithm up to the current time.
+    type: Tick.T
+    kind: recv_sync
+  - description: Fetch a data product item from the database.
+    type: Data_Product_Fetch.T
+    return_type: Data_Product_Return.T
+    kind: request
+  - description: The data product invoker connector
+    type: Data_Product.T
+    kind: send
+  - description: The parameter update connector.
+    type: Parameter_Update.T
+    kind: modify
+  - description: The system time is retrieved via this connector.
+    return_type: Sys_Time.T
+    kind: get
+  - description: The event send connector
+    type: Event.T
+    kind: send
