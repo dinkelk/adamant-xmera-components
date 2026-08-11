@@ -2,6 +2,10 @@ pragma Ada_2012;
 
 pragma Style_Checks (Off);
 pragma Warnings (Off, "-gnatwu");
+-- Boolean is used at the C boundary to match the shim's C99 bool (_Bool):
+-- 1-byte, 0/1 representation, interoperable under Convention => C. Suppress
+-- the -gnatwx advisory about using a C "char"-style type for the mapping.
+pragma Warnings (Off, "-gnatwx");
 
 with Interfaces; use Interfaces;
 with Cartesian_State.C;
@@ -59,6 +63,25 @@ package Oe_State_Ephem_Algorithm_C is
    -- nothing in the model pins. Assert it directly, since the size assert above
    -- cannot see it.
    pragma Assert (Oe_State_Ephem_Enums.Anomaly_Type.E'Object_Size = 8);
+
+   --* @brief Report whether a configuration would be accepted by Create/Set_Config.
+   --* @param Central_Body_Mu  [m^3/s^2] Central-body gravitational parameter.
+   --* @param Number_Of_Arcs   [-] Number of populated arcs.
+   --* @param Ephemeris_Time   [s] Ephemeris time offset referenced to J2000.
+   --* @param Vehicle_Time     [s] Vehicle clock time offset.
+   --* @param Fit_Coefficients Table of MAX_OE_RECORDS Chebyshev fit arcs.
+   --* @return True if the configuration is valid. Never throws, so it can guard the
+   --* throwing Create/Set_Config from an invalid configuration.
+   function Validate_Config
+     (Central_Body_Mu  : Long_Float;
+      Number_Of_Arcs   : Unsigned_32;
+      Ephemeris_Time   : Long_Float;
+      Vehicle_Time     : Long_Float;
+      Fit_Coefficients : access constant Oe_Arc_Records.C.U_C)
+     return Boolean
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemAlgorithm_validateConfig";
 
    --* @brief Construct a new OEStateEphemAlgorithm from a validated configuration.
    --* Validate the values with Validate_Config before calling; throws on invalid input.
@@ -126,3 +149,4 @@ end Oe_State_Ephem_Algorithm_C;
 
 pragma Style_Checks (On);
 pragma Warnings (On, "-gnatwu");
+pragma Warnings (On, "-gnatwx");

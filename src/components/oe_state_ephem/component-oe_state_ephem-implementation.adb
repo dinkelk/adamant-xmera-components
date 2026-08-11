@@ -6,7 +6,6 @@ with Basic_Types;
 with Cartesian_State;
 with Cartesian_State.C;
 with Interfaces;
-with Oe_Coefficients;
 with Oe_State_Ephem_Parameter_Table.Validation;
 with Parameter_Enums;
 
@@ -23,28 +22,63 @@ package body Component.Oe_State_Ephem.Implementation is
       Self.Config_Arcs := Oe_Arc_Records.C.Unpack (Table.Arcs);
    end Build_Config_Arcs;
 
+   -- Ask the algorithm's own non-throwing predicate whether it would accept a
+   -- table, using the C-boundary arc array already staged in Self.Config_Arcs.
+   --
+   -- Table-level validation only checks each field's type and range as declared in
+   -- the table YAML; it does not know the algorithm's semantic constraints
+   -- (Central_Body_Mu finite and non-negative, Number_Of_Arcs within MAX_OE_RECORDS,
+   -- per-arc Number_Of_Coefficients within MAX_OE_COEFF, and finite times and active
+   -- coefficients). Consulting Validate_Config is what keeps an accepted-but-unusable
+   -- table out of the throwing Set_Config, where the C++ exception would escape
+   -- into Ada.
+   function Config_Is_Valid (Self : in out Instance; Table : in Oe_State_Ephem_Parameter_Table.T) return Boolean
+   is (Validate_Config (
+         Central_Body_Mu  => Table.Central_Body_Mu,
+         Number_Of_Arcs   => Table.Number_Of_Arcs.Value,
+         Ephemeris_Time   => Table.Ephemeris_Time,
+         Vehicle_Time     => Table.Vehicle_Clock_Time,
+         Fit_Coefficients => Self.Config_Arcs'Access));
+
    -- Push a parameter table to the C++ algorithm via one flattened Set_Config, and
    -- remember it as the component's current configuration for Get_Pointer dumps.
-   procedure Apply_Table (Self : in out Instance; Table : in Oe_State_Ephem_Parameter_Table.T) is
+   --
+   -- Returns False, leaving the algorithm on the configuration it had already
+   -- applied, when the table is rejected.
+   --
+   -- Validation deliberately happens here rather than when the upload is staged: it
+   -- needs the C-boundary arc array, and Config_Arcs is a ~10 KB buffer owned by
+   -- the tick task. Building it in the Set handler would either race the tick task
+   -- or cost a second ~10 KB buffer, so a bad table is instead rejected on the tick
+   -- that would have applied it, one tick after the upload is acknowledged.
+   function Apply_Table (Self : in out Instance; Table : in Oe_State_Ephem_Parameter_Table.T) return Boolean is
    begin
       Build_Config_Arcs (Self, Table);
+      if not Config_Is_Valid (Self, Table) then
+         -- Config_Arcs is left holding the rejected table's arcs. That is harmless:
+         -- every apply rebuilds it from the table it is about to push, and Init
+         -- builds it before the first Create.
+         return False;
+      end if;
       Set_Config (Self.Alg,
          Central_Body_Mu  => Table.Central_Body_Mu,
          Number_Of_Arcs   => Table.Number_Of_Arcs.Value,
          Ephemeris_Time   => Table.Ephemeris_Time,
          Vehicle_Time     => Table.Vehicle_Clock_Time,
-         Fit_Coefficients => Self.Config_Arcs'Unchecked_Access);
+         Fit_Coefficients => Self.Config_Arcs'Access);
       Self.Dump_Buffer := Table;
+      return True;
    end Apply_Table;
 
-   -- Copy the staged parameter table into the algorithm. Isolated into a separate
-   -- procedure so the ~10 KB Oe_State_Ephem_Parameter_Table.T lives only on this
-   -- helper's stack frame, which is not frequently called.
-   procedure Drain_Staged_To_Algorithm (Self : in out Instance) is
+   -- Copy the staged parameter table into the algorithm, reporting whether it was
+   -- accepted. Isolated into a separate subprogram so the ~10 KB
+   -- Oe_State_Ephem_Parameter_Table.T lives only on this helper's stack frame,
+   -- which is not frequently called.
+   function Drain_Staged_To_Algorithm (Self : in out Instance) return Boolean is
       New_Table_T : Oe_State_Ephem_Parameter_Table.T;
    begin
       Self.Staged_Parameters.Copy_From_Staged (New_Table_T);
-      Apply_Table (Self, New_Table_T);
+      return Apply_Table (Self, New_Table_T);
    end Drain_Staged_To_Algorithm;
 
    --------------------------------------------------
@@ -57,12 +91,16 @@ package body Component.Oe_State_Ephem.Implementation is
       -- produces deterministic output. Default_Table is passed by access to avoid a
       -- large by-value copy on the env task's stack.
       Build_Config_Arcs (Self, Default_Table.all);
+      -- The default table comes from the assembly rather than the ground, so a
+      -- configuration the algorithm would reject is a wiring error: assert instead
+      -- of reporting, and keep it out of the throwing Create.
+      pragma Assert (Config_Is_Valid (Self, Default_Table.all));
       Self.Alg := Create (
          Central_Body_Mu  => Default_Table.all.Central_Body_Mu,
          Number_Of_Arcs   => Default_Table.all.Number_Of_Arcs.Value,
          Ephemeris_Time   => Default_Table.all.Ephemeris_Time,
          Vehicle_Time     => Default_Table.all.Vehicle_Clock_Time,
-         Fit_Coefficients => Self.Config_Arcs'Unchecked_Access);
+         Fit_Coefficients => Self.Config_Arcs'Access);
       Self.Dump_Buffer := Default_Table.all;
    end Init;
 
@@ -79,8 +117,14 @@ package body Component.Oe_State_Ephem.Implementation is
       -- Apply the staged parameter table BEFORE running the algorithm so it operates
       -- on the freshest values starting this tick, but only when a new table is staged.
       if Self.Staged_Parameters.Is_Staged then
-         Drain_Staged_To_Algorithm (Self);
-         Self.Event_T_Send_If_Connected (Self.Events.Parameter_Table_Applied (Self.Sys_Time_T_Get));
+         if Drain_Staged_To_Algorithm (Self) then
+            Self.Event_T_Send_If_Connected (Self.Events.Parameter_Table_Applied (Self.Sys_Time_T_Get));
+         else
+            -- The algorithm refused the uploaded configuration. It keeps running on
+            -- the previously applied table; report so the rejection is visible in
+            -- telemetry rather than silently discarded.
+            Self.Event_T_Send_If_Connected (Self.Events.Invalid_Parameter_Table_Config (Self.Sys_Time_T_Get));
+         end if;
       end if;
 
       declare
