@@ -7,6 +7,7 @@ with Tick;
 with Parameters_Memory_Region;
 with Oe_State_Ephem_Parameter_Table;
 with Oe_State_Ephem_Algorithm_C; use Oe_State_Ephem_Algorithm_C;
+with Oe_Arc_Records.C;
 with Protected_Variables;
 
 -- Orbital element state ephemeris algorithm. Computes spacecraft Cartesian
@@ -54,8 +55,12 @@ private
    type Instance is new Oe_State_Ephem.Base_Instance with record
       Alg : Oe_State_Ephem_Algorithm_Access := null;
       Staged_Parameters : Staged_Table_Pkg.Staged_Variable;
-      -- Dedicated dump buffer. Service handler's Get_Pointer fills this
-      -- in-place from the C++ algorithm getters and returns its address.
+      -- Off-stack staging buffer for the C-boundary arc array passed by reference
+      -- to Create/Set_Config; rebuilt from the applied table on each apply.
+      Config_Arcs : aliased Oe_Arc_Records.C.U_C;
+      -- The component's copy of the last-applied parameter table, exposed by the
+      -- Service handler's Get_Pointer dump. The flattened shim has no getters, so
+      -- the component is the source of truth for the current configuration.
       Dump_Buffer : Oe_State_Ephem_Parameter_Table.T;
    end record;
 
