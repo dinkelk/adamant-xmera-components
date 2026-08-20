@@ -8,15 +8,16 @@ with Parameters_Memory_Region;
 with Oe_State_Ephem_Parameter_Table;
 with Oe_State_Ephem_Algorithm_C; use Oe_State_Ephem_Algorithm_C;
 with Oe_Arc_Records.C;
-with Protected_Variables;
+with Interfaces;
 
 -- Orbital element state ephemeris algorithm. Computes spacecraft Cartesian
 -- state (position and velocity) from Chebyshev polynomial fits of classical
 -- orbital elements. The algorithm's configuration (central body gravitational
 -- parameter and per-arc Chebyshev coefficients) is delivered as a single
 -- Oe_State_Ephem_Parameter_Table payload via a Parameter_Table_Forwarder
--- upstream; the component validates the bytes, stages them on a protected
--- area, and applies them to the algorithm on the next tick.
+-- upstream; the component validates the bytes and the configuration when the
+-- upload arrives, stages it in the C-boundary layout, and applies it to the
+-- algorithm on the next tick.
 package Component.Oe_State_Ephem.Implementation is
 
    -- The component class instance record:
@@ -44,23 +45,48 @@ package Component.Oe_State_Ephem.Implementation is
 
 private
 
-   -- Generic protected staging area instantiated for the parameter table.
-   -- The Service handler (forwarder task) calls Stage when a validated
-   -- payload arrives; the tick task drains it via Copy_From_Staged just
-   -- before evaluating the algorithm.
-   package Staged_Table_Pkg is new Protected_Variables.Generic_Staged_Variable
-      (T => Oe_State_Ephem_Parameter_Table.T);
+   -- Staging area for parameter tables, held directly in the C-boundary layout
+   -- that Create/Set_Config consume by reference. The Service handler (forwarder
+   -- task) converts a format-valid upload arc-by-arc into this buffer and
+   -- consults the algorithm's own configuration validator right there, so a
+   -- rejected table is reported synchronously on the upload and only tables the
+   -- algorithm will accept are ever marked staged; the tick task then applies
+   -- the staged configuration, which cannot fail. Staging in C layout means the
+   -- component carries exactly one staging buffer (no packed staged copy plus a
+   -- separate conversion buffer) and the applying tick performs no large copies
+   -- or conversions: staging, validation, and apply all act on this buffer
+   -- under its lock.
+   protected type Staged_Config is
+      -- Convert Table into the internal C-layout buffer and validate it via the
+      -- algorithm's configuration validator. Marks the buffer staged (and
+      -- reports Valid => True) only when the algorithm would accept it, which is
+      -- what keeps the throwing Create/Set_Config unreachable from
+      -- Apply_If_Staged. A rejected table reports Valid => False and leaves
+      -- nothing staged, including any earlier staged-but-unapplied table (the
+      -- buffer is single and latest-wins).
+      procedure Stage (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean);
+      -- Push the staged configuration to the algorithm and clear the staged
+      -- flag: Create when Alg is still null (first apply, from Init), Set_Config
+      -- afterwards. No-op with Applied => False when nothing is staged.
+      procedure Apply_If_Staged (Alg : in out Oe_State_Ephem_Algorithm_Access; Applied : out Boolean);
+   private
+      Central_Body_Mu : Long_Float := 0.0;
+      Number_Of_Arcs : Interfaces.Unsigned_32 := 0;
+      Ephemeris_Time : Long_Float := 0.0;
+      Vehicle_Time : Long_Float := 0.0;
+      -- Written by Stage before Is_Staged is ever set; unread until then.
+      Arcs : aliased Oe_Arc_Records.C.U_C;
+      Is_Staged : Boolean := False;
+   end Staged_Config;
 
    -- The component class instance record:
    type Instance is new Oe_State_Ephem.Base_Instance with record
       Alg : Oe_State_Ephem_Algorithm_Access := null;
-      Staged_Parameters : Staged_Table_Pkg.Staged_Variable;
-      -- Off-stack staging buffer for the C-boundary arc array passed by reference
-      -- to Create/Set_Config; rebuilt from the applied table on each apply.
-      Config_Arcs : aliased Oe_Arc_Records.C.U_C;
-      -- The component's copy of the last-applied parameter table, exposed by the
-      -- Service handler's Get_Pointer dump. The flattened shim has no getters, so
-      -- the component is the source of truth for the current configuration.
+      -- The single staging buffer (see Staged_Config above).
+      Staged_Parameters : Staged_Config;
+      -- Scratch for Get_Pointer dumps: filled from the algorithm's actual
+      -- configuration on each dump request, so the algorithm remains the single
+      -- source of truth and the component keeps no copy of the applied table.
       Dump_Buffer : Oe_State_Ephem_Parameter_Table.T;
    end record;
 
@@ -72,8 +98,8 @@ private
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time. Also drains the staged parameter
-   -- table (if any) and applies it to the algorithm before evaluating.
+   -- Run the algorithm up to the current time. Also applies the staged parameter
+   -- table (if any) to the algorithm before evaluating.
    overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
    -- Inbound parameter table memory region from an upstream
    -- Parameter_Table_Forwarder; returns the operation status (Success,

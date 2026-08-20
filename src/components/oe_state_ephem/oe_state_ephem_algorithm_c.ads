@@ -128,6 +128,39 @@ package Oe_State_Ephem_Algorithm_C is
           Convention   => C,
           External_Name => "OEStateEphemAlgorithm_setConfig";
 
+   --* @brief Read back the scalar half of the algorithm's active configuration.
+   --* Together with Get_Config_Arc this exposes the configuration the algorithm is
+   --* actually using, so parameter dumps serve real algorithm state (the single
+   --* source of truth) rather than a component-side copy.
+   --* @param Self            The algorithm instance.
+   --* @param Central_Body_Mu [m^3/s^2] Central-body gravitational parameter.
+   --* @param Number_Of_Arcs  [-] Number of populated arcs.
+   --* @param Ephemeris_Time  [s] Ephemeris time offset referenced to J2000.
+   --* @param Vehicle_Time    [s] Vehicle clock time offset.
+   procedure Get_Config_Scalars
+     (Self            : Oe_State_Ephem_Algorithm_Access;
+      Central_Body_Mu : out Long_Float;
+      Number_Of_Arcs  : out Unsigned_32;
+      Ephemeris_Time  : out Long_Float;
+      Vehicle_Time    : out Long_Float)
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemAlgorithm_getConfigScalars";
+
+   --* @brief Read back one Chebyshev fit arc of the active configuration.
+   --* Per-arc granularity keeps the caller's transient storage at one arc: reading
+   --* the full configuration back never requires a table-sized buffer.
+   --* @param Self       The algorithm instance.
+   --* @param Arc_Number [-] Arc index; must be below MAX_OE_RECORDS.
+   --* @param Fit_Arc    The arc's coefficients and time window (written).
+   procedure Get_Config_Arc
+     (Self       : Oe_State_Ephem_Algorithm_Access;
+      Arc_Number : Unsigned_32;
+      Fit_Arc    : access Oe_Arc.C.U_C)
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemAlgorithm_getConfigArc";
+
    --* @brief Run the ephemeris update step.
    --* @param Self      The algorithm instance.
    --* @param Call_Time Vehicle time in nanoseconds.

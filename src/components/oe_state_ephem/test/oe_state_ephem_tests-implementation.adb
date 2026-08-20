@@ -366,8 +366,10 @@ package body Oe_State_Ephem_Tests.Implementation is
    -- configuration the C++ algorithm refuses: OEStateEphemConfig requires
    -- Number_Of_Arcs >= 1 and a non-negative Central_Body_Mu, and neither
    -- constraint is expressible as a packed-record field range. Such a table must be
-   -- rejected on the applying tick and reported, rather than reaching the throwing
-   -- Set_Config where the C++ exception would escape into Ada.
+   -- rejected synchronously on the upload itself (Parameter_Error plus an
+   -- Invalid_Parameter_Table_Config event, nothing staged), so the applying tick
+   -- only ever sees configurations the algorithm accepts and the throwing
+   -- Set_Config is never reached.
    overriding procedure Test_Set_Invalid_Config (Self : in out Instance) is
       use Parameter_Enums.Parameter_Table_Update_Status;
       T : Component.Oe_State_Ephem.Implementation.Tester.Instance_Access renames Self.Tester;
@@ -392,19 +394,19 @@ package body Oe_State_Ephem_Tests.Implementation is
             Number_Of_Arcs => (Value => 1),
             Arcs => [others => Zero_Arc]));
    begin
-      -- The upload itself is accepted: type-level validation cannot see the
-      -- algorithm's semantic constraints, so the table stages successfully.
-      Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, No_Arcs_Table), Success);
-
-      -- The applying tick refuses it and says so; nothing is applied.
-      T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+      -- The upload is refused on the spot: the Set handler stages the table and
+      -- consults the algorithm's configuration validator before acknowledging.
+      Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, No_Arcs_Table), Parameter_Error);
       Natural_Assert.Eq (T.Invalid_Parameter_Table_Config_History.Get_Count, 1);
+
+      -- Nothing was staged, so the next tick applies nothing.
+      T.Tick_T_Send ((Time => T.System_Time, Count => 0));
       Natural_Assert.Eq (T.Parameter_Table_Applied_History.Get_Count, 0);
 
       -- Same contract for a negative gravitational parameter.
-      Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, Negative_Mu_Table), Success);
-      T.Tick_T_Send ((Time => T.System_Time, Count => 1));
+      Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, Negative_Mu_Table), Parameter_Error);
       Natural_Assert.Eq (T.Invalid_Parameter_Table_Config_History.Get_Count, 2);
+      T.Tick_T_Send ((Time => T.System_Time, Count => 1));
       Natural_Assert.Eq (T.Parameter_Table_Applied_History.Get_Count, 0);
 
       -- A valid table is still accepted afterwards, so a rejection leaves the
@@ -651,7 +653,7 @@ package body Oe_State_Ephem_Tests.Implementation is
 
    -- Dump_Buffer is overwritten on every Get_Pointer call, so back-to-back
    -- Get_Pointers must each reflect the algorithm's current state at the
-   -- time of the call. The new dump-buffer design (separate from staging)
+   -- time of the call. The dump-buffer design (separate from staging)
    -- relies on this for correctness; a regression to a write-once /
    -- cached-dump strategy would slip past Test_Get_Pointer_*_Current /
    -- _Succeeds_While_Staged because those only inspect one snapshot.
