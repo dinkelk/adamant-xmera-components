@@ -56,34 +56,38 @@ private
    -- separate conversion buffer) and the applying tick performs no large copies
    -- or conversions: staging, validation, and apply all act on this buffer
    -- under its lock.
-   protected type Staged_Config is
+   protected type Staged_Table is
       -- Convert Table into the internal C-layout buffer and validate it via the
       -- algorithm's configuration validator. Marks the buffer staged (and
       -- reports Valid => True) only when the algorithm would accept it, which is
-      -- what keeps the throwing Create/Set_Config unreachable from
+      -- what keeps the throwing Create/Set_Config unreachable from Init and
       -- Apply_If_Staged. A rejected table reports Valid => False and leaves
       -- nothing staged, including any earlier staged-but-unapplied table (the
       -- buffer is single and latest-wins).
-      procedure Stage (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean);
-      -- Push the staged configuration to the algorithm and clear the staged
-      -- flag: Create when Alg is still null (first apply, from Init), Set_Config
-      -- afterwards. No-op with Applied => False when nothing is staged.
-      procedure Apply_If_Staged (Alg : in out Oe_State_Ephem_Algorithm_Access; Applied : out Boolean);
+      procedure Stage_If_Valid (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean);
+      -- Construct the algorithm from the staged configuration and clear the
+      -- staged flag. Called exactly once, from the component's Init, after it
+      -- has staged and validated the default table (asserted inside).
+      procedure Init (Alg : out Oe_State_Ephem_Algorithm_Access);
+      -- Push the staged configuration to the already-constructed algorithm via
+      -- Set_Config and clear the staged flag. No-op with Applied => False when
+      -- nothing is staged.
+      procedure Apply_If_Staged (Alg : in Oe_State_Ephem_Algorithm_Access; Applied : out Boolean);
    private
       Central_Body_Mu : Long_Float := 0.0;
       Number_Of_Arcs : Interfaces.Unsigned_32 := 0;
       Ephemeris_Time : Long_Float := 0.0;
       Vehicle_Time : Long_Float := 0.0;
-      -- Written by Stage before Is_Staged is ever set; unread until then.
+      -- Written by Stage_If_Valid before Is_Staged is ever set; unread until then.
       Arcs : aliased Oe_Arc_Records.C.U_C;
       Is_Staged : Boolean := False;
-   end Staged_Config;
+   end Staged_Table;
 
    -- The component class instance record:
    type Instance is new Oe_State_Ephem.Base_Instance with record
       Alg : Oe_State_Ephem_Algorithm_Access := null;
-      -- The single staging buffer (see Staged_Config above).
-      Staged_Parameters : Staged_Config;
+      -- The single staging buffer (see Staged_Table above).
+      Staged_Parameters : Staged_Table;
       -- Scratch for Get_Pointer dumps: filled from the algorithm's actual
       -- configuration on each dump request, so the algorithm remains the single
       -- source of truth and the component keeps no copy of the applied table.

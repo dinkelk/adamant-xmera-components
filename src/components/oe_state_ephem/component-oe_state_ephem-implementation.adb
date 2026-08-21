@@ -18,9 +18,9 @@ package body Component.Oe_State_Ephem.Implementation is
    -- Protected staging area
    ------------------------------------------------------------------------
 
-   protected body Staged_Config is
+   protected body Staged_Table is
 
-      procedure Stage (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean) is
+      procedure Stage_If_Valid (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean) is
       begin
          Central_Body_Mu := Table.Central_Body_Mu;
          Number_Of_Arcs := Table.Number_Of_Arcs.Value;
@@ -40,7 +40,7 @@ package body Component.Oe_State_Ephem.Implementation is
          -- Number_Of_Coefficients within MAX_OE_COEFF, and finite times and
          -- active coefficients). Consulting the algorithm's own validator here,
          -- against the exact buffer that will be applied, is what keeps the
-         -- throwing Create/Set_Config unreachable from Apply_If_Staged.
+         -- throwing Create/Set_Config unreachable from Init and Apply_If_Staged.
          Valid := Validate_Config (
             Central_Body_Mu  => Central_Body_Mu,
             Number_Of_Arcs   => Number_Of_Arcs,
@@ -48,36 +48,42 @@ package body Component.Oe_State_Ephem.Implementation is
             Vehicle_Time     => Vehicle_Time,
             Fit_Coefficients => Arcs'Access);
          Is_Staged := Valid;
-      end Stage;
+      end Stage_If_Valid;
 
-      procedure Apply_If_Staged (Alg : in out Oe_State_Ephem_Algorithm_Access; Applied : out Boolean) is
+      procedure Init (Alg : out Oe_State_Ephem_Algorithm_Access) is
       begin
-         Applied := False;
-         if not Is_Staged then
-            return;
-         end if;
-         -- Only configurations Stage validated ever reach this point, so the
-         -- throwing paths of Create/Set_Config are unreachable.
-         if Alg = null then
-            Alg := Create (
-               Central_Body_Mu  => Central_Body_Mu,
-               Number_Of_Arcs   => Number_Of_Arcs,
-               Ephemeris_Time   => Ephemeris_Time,
-               Vehicle_Time     => Vehicle_Time,
-               Fit_Coefficients => Arcs'Access);
-         else
+         -- The component's Init stages and validates the default table before
+         -- calling this, so a validated configuration is guaranteed staged and
+         -- the throwing path of Create is unreachable.
+         pragma Assert (Is_Staged);
+         Alg := Create (
+            Central_Body_Mu  => Central_Body_Mu,
+            Number_Of_Arcs   => Number_Of_Arcs,
+            Ephemeris_Time   => Ephemeris_Time,
+            Vehicle_Time     => Vehicle_Time,
+            Fit_Coefficients => Arcs'Access);
+         Is_Staged := False;
+      end Init;
+
+      procedure Apply_If_Staged (Alg : in Oe_State_Ephem_Algorithm_Access; Applied : out Boolean) is
+      begin
+         if Is_Staged then
+            -- Only configurations Stage_If_Valid accepted are ever staged, so
+            -- the throwing path of Set_Config is unreachable.
             Set_Config (Alg,
                Central_Body_Mu  => Central_Body_Mu,
                Number_Of_Arcs   => Number_Of_Arcs,
                Ephemeris_Time   => Ephemeris_Time,
                Vehicle_Time     => Vehicle_Time,
                Fit_Coefficients => Arcs'Access);
+            Is_Staged := False;
+            Applied := True;
+         else
+            Applied := False;
          end if;
-         Is_Staged := False;
-         Applied := True;
       end Apply_If_Staged;
 
-   end Staged_Config;
+   end Staged_Table;
 
    ------------------------------------------------------------------------
    -- Local Helpers
@@ -116,19 +122,17 @@ package body Component.Oe_State_Ephem.Implementation is
    --------------------------------------------------
    overriding procedure Init (Self : in out Instance; Default_Table : not null Oe_State_Ephem_Parameter_Table.T_Access) is
       Valid : Boolean := False;
-      Applied : Boolean := False;
    begin
-      -- Stage and apply the default table through the same protected path used
-      -- for uploads, constructing the algorithm on the first apply so any tick
-      -- arriving before an uploaded table is received still produces
-      -- deterministic output. Default_Table is passed by access to avoid a
-      -- large by-value copy on the env task's stack. The default comes from the
-      -- assembly rather than the ground, so a configuration the algorithm would
-      -- reject is a wiring error: assert instead of reporting.
-      Self.Staged_Parameters.Stage (Default_Table.all, Valid);
+      -- Stage the default table through the same protected path used for
+      -- uploads, then construct the algorithm from it, so any tick arriving
+      -- before an uploaded table is received still produces deterministic
+      -- output. Default_Table is passed by access to avoid a large by-value
+      -- copy on the env task's stack. The default comes from the assembly
+      -- rather than the ground, so a configuration the algorithm would reject
+      -- is a wiring error: assert instead of reporting.
+      Self.Staged_Parameters.Stage_If_Valid (Default_Table.all, Valid);
       pragma Assert (Valid);
-      Self.Staged_Parameters.Apply_If_Staged (Self.Alg, Applied);
-      pragma Assert (Applied);
+      Self.Staged_Parameters.Init (Self.Alg);
    end Init;
 
    not overriding procedure Destroy (Self : in out Instance) is
@@ -186,14 +190,15 @@ package body Component.Oe_State_Ephem.Implementation is
                else
                   declare
                      -- Overlay the packed .T directly on the upstream buffer, then
-                     -- stage it. Stage also runs the algorithm's own configuration
-                     -- validator, so a semantically bad table is rejected here,
-                     -- synchronously on the upload, and never reaches the tick.
+                     -- stage it. Stage_If_Valid also runs the algorithm's own
+                     -- configuration validator, so a semantically bad table is
+                     -- rejected here, synchronously on the upload, and never
+                     -- reaches the tick.
                      Table_T : constant Oe_State_Ephem_Parameter_Table.T
                         with Import, Convention => Ada, Address => Arg.Region.Address;
                      Valid : Boolean := False;
                   begin
-                     Self.Staged_Parameters.Stage (Table_T, Valid);
+                     Self.Staged_Parameters.Stage_If_Valid (Table_T, Valid);
                      if not Valid then
                         Self.Event_T_Send_If_Connected (Self.Events.Invalid_Parameter_Table_Config (
                            Self.Sys_Time_T_Get
