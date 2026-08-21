@@ -7,8 +7,6 @@ with Tick;
 with Parameters_Memory_Region;
 with Oe_State_Ephem_Parameter_Table;
 with Oe_State_Ephem_Algorithm_C; use Oe_State_Ephem_Algorithm_C;
-with Oe_Arc_Records.C;
-with Interfaces;
 
 -- Orbital element state ephemeris algorithm. Computes spacecraft Cartesian
 -- state (position and velocity) from Chebyshev polynomial fits of classical
@@ -16,8 +14,9 @@ with Interfaces;
 -- parameter and per-arc Chebyshev coefficients) is delivered as a single
 -- Oe_State_Ephem_Parameter_Table payload via a Parameter_Table_Forwarder
 -- upstream; the component validates the bytes and the configuration when the
--- upload arrives, stages it in the C-boundary layout, and applies it to the
--- algorithm on the next tick.
+-- upload arrives, stages it in a heap-resident config object via the shim's
+-- incremental builder interface, and applies it to the algorithm on the next
+-- tick.
 package Component.Oe_State_Ephem.Implementation is
 
    -- The component class instance record:
@@ -45,48 +44,49 @@ package Component.Oe_State_Ephem.Implementation is
 
 private
 
-   -- Staging area for parameter tables, held directly in the C-boundary layout
-   -- that Create/Set_Config consume by reference. The Service handler (forwarder
-   -- task) converts a format-valid upload arc-by-arc into this buffer and
-   -- consults the algorithm's own configuration validator right there, so a
-   -- rejected table is reported synchronously on the upload and only tables the
-   -- algorithm will accept are ever marked staged; the tick task then applies
-   -- the staged configuration, which cannot fail. Staging in C layout means the
-   -- component carries exactly one staging buffer (no packed staged copy plus a
-   -- separate conversion buffer) and the applying tick performs no large copies
-   -- or conversions: staging, validation, and apply all act on this buffer
-   -- under its lock.
+   -- Staging area for parameter tables, held in a heap-resident configuration
+   -- object behind the shim's opaque config handle (allocated once at Init and
+   -- reused, via reset, for every upload). The Service handler (forwarder task)
+   -- builds a format-valid upload into the config through the shim's
+   -- incremental interface (reset, scalars, then one arc at a time), and every
+   -- one of those calls is validated by the algorithm's own configuration
+   -- rules, so a rejected table is reported synchronously on the upload and
+   -- only configurations the algorithm will accept are ever marked staged; the
+   -- tick task then applies the staged configuration, which cannot fail.
+   -- Holding the staging table behind the handle keeps it out of the component
+   -- record entirely, and no step of staging or applying puts more than one
+   -- ~1 KB arc on any task's stack.
    protected type Staged_Table is
-      -- Convert Table into the internal C-layout buffer and validate it via the
-      -- algorithm's configuration validator. Marks the buffer staged (and
-      -- reports Valid => True) only when the algorithm would accept it, which is
-      -- what keeps the throwing Create/Set_Config unreachable from Init and
-      -- Apply_If_Staged. A rejected table reports Valid => False and leaves
-      -- nothing staged, including any earlier staged-but-unapplied table (the
-      -- buffer is single and latest-wins).
+      -- Allocate the config staging object and construct the algorithm from
+      -- Default_Table, staging and validating it internally. The default comes
+      -- from the assembly rather than the ground, so a configuration the
+      -- algorithm would reject is a wiring error: asserted, not reported. Call
+      -- exactly once, from the component's Init.
+      procedure Init (Default_Table : in Oe_State_Ephem_Parameter_Table.T; Alg : out Oe_State_Ephem_Algorithm_Access);
+      -- Build Table into the staging config and mark it staged (reporting
+      -- Valid => True) only when every value is accepted by the algorithm's
+      -- configuration rules, which is what keeps the throwing Create/Set_Config
+      -- unreachable. A rejected table reports Valid => False and leaves nothing
+      -- staged, including any earlier staged-but-unapplied table (the staging
+      -- config is single and latest-wins).
       procedure Stage_If_Valid (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean);
-      -- Construct the algorithm from the staged configuration and clear the
-      -- staged flag. Called exactly once, from the component's Init, after it
-      -- has staged and validated the default table (asserted inside).
-      procedure Init (Alg : out Oe_State_Ephem_Algorithm_Access);
       -- Push the staged configuration to the already-constructed algorithm via
       -- Set_Config and clear the staged flag. No-op with Applied => False when
       -- nothing is staged.
       procedure Apply_If_Staged (Alg : in Oe_State_Ephem_Algorithm_Access; Applied : out Boolean);
+      -- Release the config staging object (teardown hygiene for unit tests).
+      procedure Destroy;
    private
-      Central_Body_Mu : Long_Float := 0.0;
-      Number_Of_Arcs : Interfaces.Unsigned_32 := 0;
-      Ephemeris_Time : Long_Float := 0.0;
-      Vehicle_Time : Long_Float := 0.0;
-      -- Written by Stage_If_Valid before Is_Staged is ever set; unread until then.
-      Arcs : aliased Oe_Arc_Records.C.U_C;
+      -- The heap-resident staging config; see the type comment above.
+      Config : Oe_State_Ephem_Config_Access := null;
       Is_Staged : Boolean := False;
    end Staged_Table;
 
    -- The component class instance record:
    type Instance is new Oe_State_Ephem.Base_Instance with record
       Alg : Oe_State_Ephem_Algorithm_Access := null;
-      -- The single staging buffer (see Staged_Table above).
+      -- The staging area (see Staged_Table above); the staged table itself lives
+      -- on the heap behind the shim's opaque config handle.
       Staged_Parameters : Staged_Table;
       -- Scratch for Get_Pointer dumps: filled from the algorithm's actual
       -- configuration on each dump request, so the algorithm remains the single

@@ -13,13 +13,24 @@ with Oe_State_Ephem_Enums;
 with Oe_Coefficients.C;
 with Packed_F64x20.C;
 with Oe_Arc.C;
-with Oe_Arc_Records.C;
+with Oe_Arc_Records;
 
 package Oe_State_Ephem_Algorithm_C is
 
    --* Opaque handle for an OEStateEphemAlgorithm instance.
    type Oe_State_Ephem_Algorithm is limited private;
    type Oe_State_Ephem_Algorithm_Access is access all Oe_State_Ephem_Algorithm;
+
+   --* Opaque handle for a heap-resident OEStateEphemConfig staging object. Built
+   --* incrementally (Config_Reset, Config_Set_Scalars, then Config_Add_Arc once
+   --* per active arc); each mutating call validates its input on the C++ side
+   --* and reports rejection as False, so the config is at every moment either
+   --* empty or a valid configuration. The arc count is owned by the config and
+   --* incremented by Config_Add_Arc. Building arc by arc keeps the caller's
+   --* transient stack at one arc; once built, the config is handed to the
+   --* algorithm by handle and reset for reuse on the next build.
+   type Oe_State_Ephem_Config is limited private;
+   type Oe_State_Ephem_Config_Access is access all Oe_State_Ephem_Config;
 
    --* @brief Get MAX_OE_COEFF, the number of Chebyshev coefficients per
    --* orbital element, for ABI validation.
@@ -64,39 +75,80 @@ package Oe_State_Ephem_Algorithm_C is
    -- cannot see it.
    pragma Assert (Oe_State_Ephem_Enums.Anomaly_Type.E'Object_Size = 8);
 
-   --* @brief Report whether a configuration would be accepted by Create/Set_Config.
-   --* @param Central_Body_Mu  [m^3/s^2] Central-body gravitational parameter.
-   --* @param Number_Of_Arcs   [-] Number of populated arcs.
-   --* @param Ephemeris_Time   [s] Ephemeris time offset referenced to J2000.
-   --* @param Vehicle_Time     [s] Vehicle clock time offset.
-   --* @param Fit_Coefficients Table of MAX_OE_RECORDS Chebyshev fit arcs.
-   --* @return True if the configuration is valid. Never throws, so it can guard the
-   --* throwing Create/Set_Config from an invalid configuration.
-   function Validate_Config
-     (Central_Body_Mu  : Long_Float;
-      Number_Of_Arcs   : Unsigned_32;
-      Ephemeris_Time   : Long_Float;
-      Vehicle_Time     : Long_Float;
-      Fit_Coefficients : access constant Oe_Arc_Records.C.U_C)
+   --* @brief Allocate a new configuration in the empty state (zero arcs, zeroed
+   --* storage). Must be released with Config_Destroy.
+   function Config_Create
+     return Oe_State_Ephem_Config_Access
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemConfig_create";
+
+   --* @brief Destroy a previously created configuration.
+   --* @param Config The configuration to destroy.
+   procedure Config_Destroy
+     (Config : Oe_State_Ephem_Config_Access)
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemConfig_destroy";
+
+   --* @brief Return a configuration to the empty state for reuse.
+   --* @param Config The configuration to reset.
+   procedure Config_Reset
+     (Config : Oe_State_Ephem_Config_Access)
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemConfig_reset";
+
+   --* @brief Set the scalar half of a configuration.
+   --* @param Config          The configuration.
+   --* @param Central_Body_Mu [m^3/s^2] Central-body gravitational parameter.
+   --* @param Ephemeris_Time  [s] Ephemeris time offset referenced to J2000.
+   --* @param Vehicle_Time    [s] Vehicle clock time offset.
+   --* @return True on success; False if a value was rejected (the configuration
+   --* is unmodified).
+   function Config_Set_Scalars
+     (Config          : Oe_State_Ephem_Config_Access;
+      Central_Body_Mu : Long_Float;
+      Ephemeris_Time  : Long_Float;
+      Vehicle_Time    : Long_Float)
      return Boolean
      with Import       => True,
           Convention   => C,
-          External_Name => "OEStateEphemAlgorithm_validateConfig";
+          External_Name => "OEStateEphemConfig_setScalars";
 
-   --* @brief Construct a new OEStateEphemAlgorithm from a validated configuration.
-   --* Validate the values with Validate_Config before calling; throws on invalid input.
-   --* @param Central_Body_Mu  [m^3/s^2] Central-body gravitational parameter.
-   --* @param Number_Of_Arcs   [-] Number of populated arcs.
-   --* @param Ephemeris_Time   [s] Ephemeris time offset referenced to J2000.
-   --* @param Vehicle_Time     [s] Vehicle clock time offset.
-   --* @param Fit_Coefficients Table of MAX_OE_RECORDS Chebyshev fit arcs.
+   --* @brief Append one active arc to a configuration. The arc count is owned by
+   --* the configuration.
+   --* @param Config  The configuration.
+   --* @param Fit_Arc The arc to append.
+   --* @return True on success; False if the arc was rejected or the table is
+   --* already full (the configuration is unmodified).
+   function Config_Add_Arc
+     (Config  : Oe_State_Ephem_Config_Access;
+      Fit_Arc : access constant Oe_Arc.C.U_C)
+     return Boolean
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemConfig_addArc";
+
+   --* @brief Report whether a configuration would be accepted by the algorithm.
+   --* @param Config The configuration.
+   --* @return True if valid; False if empty (or otherwise invalid). Because every
+   --* mutation validates its input, an empty configuration is the only reachable
+   --* invalid state; the full re-check is defense in depth.
+   function Config_Validate
+     (Config : Oe_State_Ephem_Config_Access)
+     return Boolean
+     with Import       => True,
+          Convention   => C,
+          External_Name => "OEStateEphemConfig_validate";
+
+   --* @brief Construct a new OEStateEphemAlgorithm from a configuration.
+   --* Validate with Config_Validate before calling; throws on an invalid
+   --* configuration.
+   --* @param Config The configuration to copy into the algorithm.
    --* @return The new algorithm instance, which must be released with Destroy.
    function Create
-     (Central_Body_Mu  : Long_Float;
-      Number_Of_Arcs   : Unsigned_32;
-      Ephemeris_Time   : Long_Float;
-      Vehicle_Time     : Long_Float;
-      Fit_Coefficients : access constant Oe_Arc_Records.C.U_C)
+     (Config : Oe_State_Ephem_Config_Access)
      return Oe_State_Ephem_Algorithm_Access
      with Import       => True,
           Convention   => C,
@@ -110,20 +162,14 @@ package Oe_State_Ephem_Algorithm_C is
           Convention   => C,
           External_Name => "OEStateEphemAlgorithm_destroy";
 
-   --* @brief Apply a new configuration (validated; throws on invalid input).
-   --* @param Self             The algorithm instance.
-   --* @param Central_Body_Mu  [m^3/s^2] Central-body gravitational parameter.
-   --* @param Number_Of_Arcs   [-] Number of populated arcs.
-   --* @param Ephemeris_Time   [s] Ephemeris time offset referenced to J2000.
-   --* @param Vehicle_Time     [s] Vehicle clock time offset.
-   --* @param Fit_Coefficients Table of MAX_OE_RECORDS Chebyshev fit arcs.
+   --* @brief Replace the algorithm's configuration. Validate with Config_Validate
+   --* before calling; throws on an invalid configuration, leaving the active
+   --* configuration intact.
+   --* @param Self   The algorithm instance.
+   --* @param Config The configuration to copy into the algorithm.
    procedure Set_Config
-     (Self             : Oe_State_Ephem_Algorithm_Access;
-      Central_Body_Mu  : Long_Float;
-      Number_Of_Arcs   : Unsigned_32;
-      Ephemeris_Time   : Long_Float;
-      Vehicle_Time     : Long_Float;
-      Fit_Coefficients : access constant Oe_Arc_Records.C.U_C)
+     (Self   : Oe_State_Ephem_Algorithm_Access;
+      Config : Oe_State_Ephem_Config_Access)
      with Import       => True,
           Convention   => C,
           External_Name => "OEStateEphemAlgorithm_setConfig";
@@ -147,7 +193,8 @@ package Oe_State_Ephem_Algorithm_C is
           Convention   => C,
           External_Name => "OEStateEphemAlgorithm_getConfigScalars";
 
-   --* @brief Read back one Chebyshev fit arc of the active configuration.
+   --* @brief Read back one Chebyshev fit arc of the active configuration. Slots at
+   --* or above the active count read back zero-filled.
    --* Per-arc granularity keeps the caller's transient storage at one arc: reading
    --* the full configuration back never requires a table-sized buffer.
    --* @param Self       The algorithm instance.
@@ -175,8 +222,9 @@ package Oe_State_Ephem_Algorithm_C is
 
 private
 
-   -- Private representation: opaque null record
+   -- Private representation: opaque null records
    type Oe_State_Ephem_Algorithm is null record;
+   type Oe_State_Ephem_Config is null record;
 
 end Oe_State_Ephem_Algorithm_C;
 

@@ -393,6 +393,30 @@ package body Oe_State_Ephem_Tests.Implementation is
             Central_Body_Mu => -1.0,
             Number_Of_Arcs => (Value => 1),
             Arcs => [others => Zero_Arc]));
+
+      -- More arcs than the wire table has slots: passes format validation
+      -- (Number_Of_Arcs is an unconstrained Packed_U32) but cannot even drive
+      -- the arc conversion loop; the staging path must bound it first.
+      Too_Many_Arcs_Table : constant Oe_State_Ephem_Parameter_Table.T :=
+         Oe_State_Ephem_Parameter_Table.Pack ((
+            Ephemeris_Time => 0.0,
+            Vehicle_Clock_Time => 0.0,
+            Central_Body_Mu => 0.0,
+            Number_Of_Arcs => (Value => 12),
+            Arcs => [others => Zero_Arc]));
+
+      -- An arc with a zero middle time: format-valid (0.0 is a legal
+      -- Long_Float) but the algorithm requires strictly positive arc times, so
+      -- the per-arc Add_Arc validation must reject it.
+      Zero_Time_Arc : constant Oe_Arc.U :=
+         (Zero_Arc with delta Middle_Time => 0.0);
+      Zero_Time_Table : constant Oe_State_Ephem_Parameter_Table.T :=
+         Oe_State_Ephem_Parameter_Table.Pack ((
+            Ephemeris_Time => 0.0,
+            Vehicle_Clock_Time => 0.0,
+            Central_Body_Mu => 0.0,
+            Number_Of_Arcs => (Value => 1),
+            Arcs => [0 => Zero_Time_Arc, others => Zero_Arc]));
    begin
       -- The upload is refused on the spot: the Set handler stages the table and
       -- consults the algorithm's configuration validator before acknowledging.
@@ -409,12 +433,24 @@ package body Oe_State_Ephem_Tests.Implementation is
       T.Tick_T_Send ((Time => T.System_Time, Count => 1));
       Natural_Assert.Eq (T.Parameter_Table_Applied_History.Get_Count, 0);
 
+      -- Same contract for a count that exceeds the wire table's slots.
+      Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, Too_Many_Arcs_Table), Parameter_Error);
+      Natural_Assert.Eq (T.Invalid_Parameter_Table_Config_History.Get_Count, 3);
+      T.Tick_T_Send ((Time => T.System_Time, Count => 2));
+      Natural_Assert.Eq (T.Parameter_Table_Applied_History.Get_Count, 0);
+
+      -- Same contract for an arc the per-arc validation rejects.
+      Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, Zero_Time_Table), Parameter_Error);
+      Natural_Assert.Eq (T.Invalid_Parameter_Table_Config_History.Get_Count, 4);
+      T.Tick_T_Send ((Time => T.System_Time, Count => 3));
+      Natural_Assert.Eq (T.Parameter_Table_Applied_History.Get_Count, 0);
+
       -- A valid table is still accepted afterwards, so a rejection leaves the
       -- staging path usable rather than wedging it.
       Parameter_Table_Update_Status_Assert.Eq (Send_Set_Table (T, Zero_Table), Success);
-      T.Tick_T_Send ((Time => T.System_Time, Count => 2));
+      T.Tick_T_Send ((Time => T.System_Time, Count => 4));
       Natural_Assert.Eq (T.Parameter_Table_Applied_History.Get_Count, 1);
-      Natural_Assert.Eq (T.Invalid_Parameter_Table_Config_History.Get_Count, 2);
+      Natural_Assert.Eq (T.Invalid_Parameter_Table_Config_History.Get_Count, 4);
    end Test_Set_Invalid_Config;
 
    overriding procedure Test_Validate_Returns_Parameter_Error (Self : in out Instance) is

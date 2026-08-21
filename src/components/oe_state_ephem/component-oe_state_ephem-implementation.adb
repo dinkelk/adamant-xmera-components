@@ -20,68 +20,78 @@ package body Component.Oe_State_Ephem.Implementation is
 
    protected body Staged_Table is
 
-      procedure Stage_If_Valid (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean) is
+      procedure Init (Default_Table : in Oe_State_Ephem_Parameter_Table.T; Alg : out Oe_State_Ephem_Algorithm_Access) is
+         Valid : Boolean := False;
       begin
-         Central_Body_Mu := Table.Central_Body_Mu;
-         Number_Of_Arcs := Table.Number_Of_Arcs.Value;
-         Ephemeris_Time := Table.Ephemeris_Time;
-         Vehicle_Time := Table.Vehicle_Clock_Time;
-         -- Convert arc-by-arc: the array-level Oe_Arc_Records.C.Unpack returns
-         -- the whole ~10 KB C array by value, and the compiler is free to
-         -- materialize a full-size stack temporary for the assignment. Per-arc
-         -- conversion bounds the transient at one arc (~1 KB).
-         for I in Arcs'Range loop
-            Arcs (I) := Oe_Arc.C.Unpack (Table.Arcs (I));
-         end loop;
-         -- Table-level format validation (done by the caller) only checks each
-         -- field's type and range as declared in the table YAML; it does not
-         -- know the algorithm's semantic constraints (Central_Body_Mu finite
-         -- and non-negative, Number_Of_Arcs within MAX_OE_RECORDS, per-arc
-         -- Number_Of_Coefficients within MAX_OE_COEFF, and finite times and
-         -- active coefficients). Consulting the algorithm's own validator here,
-         -- against the exact buffer that will be applied, is what keeps the
-         -- throwing Create/Set_Config unreachable from Init and Apply_If_Staged.
-         Valid := Validate_Config (
-            Central_Body_Mu  => Central_Body_Mu,
-            Number_Of_Arcs   => Number_Of_Arcs,
-            Ephemeris_Time   => Ephemeris_Time,
-            Vehicle_Time     => Vehicle_Time,
-            Fit_Coefficients => Arcs'Access);
-         Is_Staged := Valid;
-      end Stage_If_Valid;
-
-      procedure Init (Alg : out Oe_State_Ephem_Algorithm_Access) is
-      begin
-         -- The component's Init stages and validates the default table before
-         -- calling this, so a validated configuration is guaranteed staged and
-         -- the throwing path of Create is unreachable.
-         pragma Assert (Is_Staged);
-         Alg := Create (
-            Central_Body_Mu  => Central_Body_Mu,
-            Number_Of_Arcs   => Number_Of_Arcs,
-            Ephemeris_Time   => Ephemeris_Time,
-            Vehicle_Time     => Vehicle_Time,
-            Fit_Coefficients => Arcs'Access);
+         -- Allocate the config staging object once; it is reused (via reset)
+         -- for every subsequent upload.
+         Config := Config_Create;
+         -- Stage the default through the same path uploads take. The default
+         -- comes from the assembly rather than the ground, so a configuration
+         -- the algorithm would reject is a wiring error: assert instead of
+         -- reporting. The staged flag is cleared since the configuration is
+         -- applied right here via Create.
+         Stage_If_Valid (Default_Table, Valid);
+         pragma Assert (Valid);
+         Alg := Create (Config);
          Is_Staged := False;
       end Init;
+
+      procedure Stage_If_Valid (Table : in Oe_State_Ephem_Parameter_Table.T; Valid : out Boolean) is
+      begin
+         Is_Staged := False;
+         Config_Reset (Config);
+         -- The wire count must address slots that exist in the fixed-size wire
+         -- table before it can drive the conversion loop below; a count outside
+         -- that range can pass format validation (Number_Of_Arcs is an
+         -- unconstrained Packed_U32) but never denotes a convertible table.
+         Valid := Table.Number_Of_Arcs.Value in 1 .. Unsigned_32 (Table.Arcs'Length);
+         if Valid then
+            Valid := Config_Set_Scalars (Config,
+               Central_Body_Mu => Table.Central_Body_Mu,
+               Ephemeris_Time  => Table.Ephemeris_Time,
+               Vehicle_Time    => Table.Vehicle_Clock_Time);
+         end if;
+         if Valid then
+            -- Convert and append the active arcs one at a time; each Add_Arc
+            -- validates the arc it is handed, so an unpacked arc never costs
+            -- more than this ~1 KB local and a rejected arc rejects the table.
+            for I in 0 .. Natural (Table.Number_Of_Arcs.Value) - 1 loop
+               declare
+                  Arc_C : aliased constant Oe_Arc.C.U_C := Oe_Arc.C.Unpack (Table.Arcs (I));
+               begin
+                  Valid := Config_Add_Arc (Config, Arc_C'Access);
+               end;
+               exit when not Valid;
+            end loop;
+         end if;
+         if Valid then
+            -- Defense in depth: with every build step validated above, the only
+            -- state Config_Validate can reject here is an empty config, which
+            -- the count check already precludes.
+            Valid := Config_Validate (Config);
+         end if;
+         Is_Staged := Valid;
+      end Stage_If_Valid;
 
       procedure Apply_If_Staged (Alg : in Oe_State_Ephem_Algorithm_Access; Applied : out Boolean) is
       begin
          if Is_Staged then
             -- Only configurations Stage_If_Valid accepted are ever staged, so
             -- the throwing path of Set_Config is unreachable.
-            Set_Config (Alg,
-               Central_Body_Mu  => Central_Body_Mu,
-               Number_Of_Arcs   => Number_Of_Arcs,
-               Ephemeris_Time   => Ephemeris_Time,
-               Vehicle_Time     => Vehicle_Time,
-               Fit_Coefficients => Arcs'Access);
+            Set_Config (Alg, Config);
             Is_Staged := False;
             Applied := True;
          else
             Applied := False;
          end if;
       end Apply_If_Staged;
+
+      procedure Destroy is
+      begin
+         Config_Destroy (Config);
+         Config := null;
+      end Destroy;
 
    end Staged_Table;
 
@@ -121,22 +131,18 @@ package body Component.Oe_State_Ephem.Implementation is
    -- Subprogram for implementation init method:
    --------------------------------------------------
    overriding procedure Init (Self : in out Instance; Default_Table : not null Oe_State_Ephem_Parameter_Table.T_Access) is
-      Valid : Boolean := False;
    begin
-      -- Stage the default table through the same protected path used for
-      -- uploads, then construct the algorithm from it, so any tick arriving
-      -- before an uploaded table is received still produces deterministic
-      -- output. Default_Table is passed by access to avoid a large by-value
-      -- copy on the env task's stack. The default comes from the assembly
-      -- rather than the ground, so a configuration the algorithm would reject
-      -- is a wiring error: assert instead of reporting.
-      Self.Staged_Parameters.Stage_If_Valid (Default_Table.all, Valid);
-      pragma Assert (Valid);
-      Self.Staged_Parameters.Init (Self.Alg);
+      -- Stage the default table and construct the algorithm from it, through
+      -- the same protected path uploads take, so any tick arriving before an
+      -- uploaded table is received still produces deterministic output.
+      -- Default_Table is passed by access (and dereferenced into a by-reference
+      -- parameter) to avoid a large by-value copy on the env task's stack.
+      Self.Staged_Parameters.Init (Default_Table.all, Self.Alg);
    end Init;
 
    not overriding procedure Destroy (Self : in out Instance) is
    begin
+      Self.Staged_Parameters.Destroy;
       Destroy (Self.Alg);
    end Destroy;
 
