@@ -52,9 +52,9 @@ package body Component.Hill_Point.Implementation is
       -- Convert to C types. Each state is converted once because it feeds two of
       -- the algorithm's arguments below.
       Spacecraft_C : constant Cartesian_State.C.U_C :=
-         Cartesian_State.C.To_C (Cartesian_State.Unpack (Spacecraft));
+         Cartesian_State.C.Unpack (Spacecraft);
       Primary_Body_C : constant Cartesian_State.C.U_C :=
-         Cartesian_State.C.To_C (Cartesian_State.Unpack (Primary_Body));
+         Cartesian_State.C.Unpack (Primary_Body);
 
       -- Call the algorithm. The vectors cross by value.
       Reference : constant Att_Ref.C.U_C := Update (
@@ -68,7 +68,7 @@ package body Component.Hill_Point.Implementation is
       -- Send out data product:
       Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
          Arg.Time,
-         Att_Ref.Pack (Att_Ref.C.To_Ada (Reference))
+         Att_Ref.C.Pack (Reference)
       ));
    end Tick_T_Recv_Sync;
 
