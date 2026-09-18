@@ -2,6 +2,9 @@
 -- Thrust_Vectoring Tests Body
 --------------------------------------------------------------------------------
 
+with Ada.Assertions;
+with AUnit.Assertions;
+with Parameter;
 with Basic_Assertions; use Basic_Assertions;
 with Packed_F32;
 with Packed_F32x3;
@@ -144,11 +147,42 @@ package body Thrust_Vectoring_Tests.Implementation is
       Parameter_Update_Status_Assert.Eq (T.Stage_Parameter (Params.R_Cb_B (Thrust_Point)), Success);
       Parameter_Update_Status_Assert.Eq (T.Validate_Parameters, Validation_Error);
 
+      -- A non-finite thrust point is rejected. The value is injected as raw bytes because the
+      -- compiler will not let a non-finite Short_Float be written as a literal, and
+      -- because that is how one would arrive: as bytes from the ground. Staging accepts
+      -- it, and converting it for the algorithm raises, which validation reports as a
+      -- rejection.
+      Stage_Valid_Configuration;
+      declare
+         Par : Parameter.T := Params.R_Mb_B (Thrust_Point);
+      begin
+         -- Overwrite the first of the three big-endian floats with +infinity.
+         Par.Buffer (Par.Buffer'First .. Par.Buffer'First + 3) := [16#7F#, 16#80#, 16#00#, 16#00#];
+         Parameter_Update_Status_Assert.Eq (T.Stage_Parameter (Par), Success);
+      end;
+      Parameter_Update_Status_Assert.Eq (T.Validate_Parameters, Validation_Error);
+
       -- Restoring the reference configuration makes the set acceptable again, so the
       -- rejections above were caused by the perturbed values:
       Stage_Valid_Configuration;
       Parameter_Update_Status_Assert.Eq (T.Validate_Parameters, Success);
       Parameter_Update_Status_Assert.Eq (T.Update_Parameters, Success);
    end Test_Invalid_Parameter;
+
+   -- A data dependency that comes back with the wrong identifier means the assembly
+   -- is wired incorrectly. The component asserts rather than publishing anything.
+   overriding procedure Test_Invalid_Data_Dependency (Self : in out Instance) is
+      T : Component.Thrust_Vectoring.Implementation.Tester.Instance_Access renames Self.Tester;
+   begin
+      T.Data_Dependency_Return_Id_Override := 999;
+      begin
+         T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+         AUnit.Assertions.Assert (False, "A dependency with the wrong identifier should have failed an assertion.");
+      exception
+         when Ada.Assertions.Assertion_Error =>
+            null; -- Expected.
+      end;
+      Natural_Assert.Eq (T.Thrust_Direction_History.Get_Count, 0);
+   end Test_Invalid_Data_Dependency;
 
 end Thrust_Vectoring_Tests.Implementation;
