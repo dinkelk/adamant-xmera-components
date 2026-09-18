@@ -1,0 +1,5 @@
+---
+description: This is a unit test suite for the Hill Point component
+tests:
+  - name: Test
+    description: Run the algorithm to ensure the Ada to C to C++ integration is sound.
