@@ -73,12 +73,12 @@ package body Component.Sun_Avoidance.Implementation is
       -- input reference, and the spacecraft and Sun positions. All cross by pointer,
       -- so they need objects to point at.
       Sigma_Bn_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Nav_Att_Output.C.To_C (Nav_Att_Output.Unpack (Attitude)).Sigma_Bn);
-      Reference_C : aliased constant Att_Ref.C.U_C := Att_Ref.C.To_C (Att_Ref.Unpack (Reference));
+         (Value => Nav_Att_Output.C.Unpack (Attitude).Sigma_Bn);
+      Reference_C : aliased constant Att_Ref.C.U_C := Att_Ref.C.Unpack (Reference);
       Spacecraft_R_C : aliased constant Packed_F64x3_Record.C.U_C :=
-         (Value => Cartesian_State.C.To_C (Cartesian_State.Unpack (Spacecraft)).Position);
+         (Value => Cartesian_State.C.Unpack (Spacecraft).Position);
       Sun_R_C : aliased constant Packed_F64x3_Record.C.U_C :=
-         (Value => Cartesian_State.C.To_C (Cartesian_State.Unpack (Sun)).Position);
+         (Value => Cartesian_State.C.Unpack (Sun).Position);
 
       -- The algorithm measures the elapsed slew from the call time in nanoseconds. The
       -- tick time carries 16-bit binary subseconds.
@@ -93,13 +93,13 @@ package body Component.Sun_Avoidance.Implementation is
       -- because Parameter_Enums also declares one.
       Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
          Arg.Time,
-         Att_Ref.Pack (Att_Ref.C.To_Ada (Sun_Avoidance_Algorithm_C.Update (
+         Att_Ref.C.Pack (Sun_Avoidance_Algorithm_C.Update (
             Self.Alg,
             Sigma_Bn  => Sigma_Bn_C'Access,
             Ref       => Reference_C'Access,
             R_Bn_N    => Spacecraft_R_C'Access,
             R_Sn_N    => Sun_R_C'Access,
-            Call_Time => Call_Time_Ns)))
+            Call_Time => Call_Time_Ns))
       ));
    end Tick_T_Recv_Sync;
 
@@ -150,10 +150,12 @@ package body Component.Sun_Avoidance.Implementation is
       Slew_Rate : in Packed_F32.U
    ) return Parameter_Validation_Status.E is
       Ignore : Instance renames Self;
-      -- The sensitive axis crosses by pointer, so it needs an object to point at.
-      Sensitive_Hat_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Packed_F32x3.C.To_C (Sensitive_Hat_B));
+      -- The sensitive axis crosses by pointer, so it needs an object to point at. It is
+      -- filled in below, inside the handled part of the function, so that a conversion
+      -- that raises is caught here.
+      Sensitive_Hat_C : aliased Packed_F32x3_Record.C.U_C;
    begin
+      Sensitive_Hat_C := (Value => Packed_F32x3.C.To_C (Sensitive_Hat_B));
       if Validate_Config (
          Sensitive_Hat_B => Sensitive_Hat_C'Access,
          Slew_Rate       => Slew_Rate.Value)
