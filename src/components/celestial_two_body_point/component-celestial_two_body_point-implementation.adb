@@ -5,7 +5,7 @@
 with Att_Ref;
 with Att_Ref.C;
 with Cartesian_State;
-with Cartesian_State.C;
+with Packed_F64x3.C;
 
 package body Component.Celestial_Two_Body_Point.Implementation is
 
@@ -54,28 +54,23 @@ package body Component.Celestial_Two_Body_Point.Implementation is
       Spacecraft_Status : constant Data_Dependency_Status.E :=
          Self.Get_Spacecraft_State (Value => Spacecraft, Stale_Reference => Arg.Time);
       pragma Assert (Spacecraft_Status = Success);
-
-      -- Convert to C types. Each state is converted once because it feeds two of the
-      -- algorithm's arguments below.
-      Primary_C : constant Cartesian_State.C.U_C := Cartesian_State.C.Unpack (Primary);
-      Secondary_C : constant Cartesian_State.C.U_C := Cartesian_State.C.Unpack (Secondary);
-      Spacecraft_C : constant Cartesian_State.C.U_C := Cartesian_State.C.Unpack (Spacecraft);
    begin
       -- Apply any pending parameter update (e.g. a new alignment threshold):
       Self.Update_Parameters;
 
-      -- Call the C algorithm and publish the reference. The vectors cross by value.
-      -- Update is qualified because Parameter_Enums also declares one.
+      -- Call the C algorithm and publish the reference. Each position and velocity is
+      -- converted straight from the packed record and crosses by value. Update is
+      -- qualified because Parameter_Enums also declares one.
       Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
          Arg.Time,
          Att_Ref.C.Pack (Celestial_Two_Body_Point_Algorithm_C.Update (
             Self.Alg,
-            R_Pn_N => (Value => Primary_C.Position),
-            V_Pn_N => (Value => Primary_C.Velocity),
-            R_Sn_N => (Value => Secondary_C.Position),
-            V_Sn_N => (Value => Secondary_C.Velocity),
-            R_Bn_N => (Value => Spacecraft_C.Position),
-            V_Bn_N => (Value => Spacecraft_C.Velocity)))
+            R_Pn_N => (Value => Packed_F64x3.C.Unpack (Primary.Position)),
+            V_Pn_N => (Value => Packed_F64x3.C.Unpack (Primary.Velocity)),
+            R_Sn_N => (Value => Packed_F64x3.C.Unpack (Secondary.Position)),
+            V_Sn_N => (Value => Packed_F64x3.C.Unpack (Secondary.Velocity)),
+            R_Bn_N => (Value => Packed_F64x3.C.Unpack (Spacecraft.Position)),
+            V_Bn_N => (Value => Packed_F64x3.C.Unpack (Spacecraft.Velocity))))
       ));
    end Tick_T_Recv_Sync;
 
