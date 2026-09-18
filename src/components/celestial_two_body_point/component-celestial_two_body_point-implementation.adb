@@ -57,9 +57,9 @@ package body Component.Celestial_Two_Body_Point.Implementation is
 
       -- Convert to C types. Each state is converted once because it feeds two of the
       -- algorithm's arguments below.
-      Primary_C : constant Cartesian_State.C.U_C := Cartesian_State.C.To_C (Cartesian_State.Unpack (Primary));
-      Secondary_C : constant Cartesian_State.C.U_C := Cartesian_State.C.To_C (Cartesian_State.Unpack (Secondary));
-      Spacecraft_C : constant Cartesian_State.C.U_C := Cartesian_State.C.To_C (Cartesian_State.Unpack (Spacecraft));
+      Primary_C : constant Cartesian_State.C.U_C := Cartesian_State.C.Unpack (Primary);
+      Secondary_C : constant Cartesian_State.C.U_C := Cartesian_State.C.Unpack (Secondary);
+      Spacecraft_C : constant Cartesian_State.C.U_C := Cartesian_State.C.Unpack (Spacecraft);
    begin
       -- Apply any pending parameter update (e.g. a new alignment threshold):
       Self.Update_Parameters;
@@ -68,14 +68,14 @@ package body Component.Celestial_Two_Body_Point.Implementation is
       -- Update is qualified because Parameter_Enums also declares one.
       Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
          Arg.Time,
-         Att_Ref.Pack (Att_Ref.C.To_Ada (Celestial_Two_Body_Point_Algorithm_C.Update (
+         Att_Ref.C.Pack (Celestial_Two_Body_Point_Algorithm_C.Update (
             Self.Alg,
             R_Pn_N => (Value => Primary_C.Position),
             V_Pn_N => (Value => Primary_C.Velocity),
             R_Sn_N => (Value => Secondary_C.Position),
             V_Sn_N => (Value => Secondary_C.Velocity),
             R_Bn_N => (Value => Spacecraft_C.Position),
-            V_Bn_N => (Value => Spacecraft_C.Velocity))))
+            V_Bn_N => (Value => Spacecraft_C.Velocity)))
       ));
    end Tick_T_Recv_Sync;
 
