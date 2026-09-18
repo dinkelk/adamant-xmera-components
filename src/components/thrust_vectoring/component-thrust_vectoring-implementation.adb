@@ -55,7 +55,7 @@ package body Component.Thrust_Vectoring.Implementation is
 
       -- The request crosses by pointer, so it needs an object to point at.
       Torque_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Cmd_Torque_Body.C.To_C (Cmd_Torque_Body.Unpack (Torque)).Torque_Request_Body);
+         (Value => Cmd_Torque_Body.C.Unpack (Torque).Torque_Request_Body);
    begin
       -- Apply any pending parameter update (e.g. a new center of mass):
       Self.Update_Parameters;
@@ -109,10 +109,13 @@ package body Component.Thrust_Vectoring.Implementation is
    ) return Parameter_Validation_Status.E is
       Ignore : Instance renames Self;
       -- The thrust point and center of mass cross by pointer, so they need objects to
-      -- point at.
-      R_Mb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.To_C (R_Mb_B));
-      R_Cb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.To_C (R_Cb_B));
+      -- point at. They are filled in below, inside the handled part of the function,
+      -- so that a conversion that raises is caught here.
+      R_Mb_B_C : aliased Packed_F32x3_Record.C.U_C;
+      R_Cb_B_C : aliased Packed_F32x3_Record.C.U_C;
    begin
+      R_Mb_B_C := (Value => Packed_F32x3.C.To_C (R_Mb_B));
+      R_Cb_B_C := (Value => Packed_F32x3.C.To_C (R_Cb_B));
       if Validate_Config (
          R_Mb_B => R_Mb_B_C'Access,
          Thrust => Thrust.Value,
