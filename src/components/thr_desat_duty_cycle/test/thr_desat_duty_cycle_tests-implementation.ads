@@ -17,6 +17,9 @@ private
    -- Run the cadences of the Python reference test to ensure the Ada to C to C++
    -- integration is sound.
    overriding procedure Test (Self : in out Instance);
+   -- Ensure a data dependency with the wrong identifier is treated as a wiring
+   -- defect and fails the tick's assertion.
+   overriding procedure Test_Invalid_Data_Dependency (Self : in out Instance);
    -- Check that the reset connector restarts the duty cycle at its firing window.
    overriding procedure Test_Reset (Self : in out Instance);
    -- Ensure a staged configuration the algorithm would reject is refused at
