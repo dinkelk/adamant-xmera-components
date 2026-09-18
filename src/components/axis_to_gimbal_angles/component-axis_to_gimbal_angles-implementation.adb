@@ -103,10 +103,12 @@ package body Component.Axis_To_Gimbal_Angles.Implementation is
       Theta_Max : in Packed_F32.U
    ) return Parameter_Validation_Status.E is
       Ignore : Instance renames Self;
-      -- The mount attitude crosses by pointer, so it needs an object to point at.
-      Sigma_Mb_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Packed_F32x3.C.To_C (Sigma_Mb));
+      -- The mount attitude crosses by pointer, so it needs an object to point at. It is
+      -- filled in below, inside the handled part of the function, so that a conversion
+      -- that raises is caught here.
+      Sigma_Mb_C : aliased Packed_F32x3_Record.C.U_C;
    begin
+      Sigma_Mb_C := (Value => Packed_F32x3.C.To_C (Sigma_Mb));
       if Validate_Config (
          Sigma_Mb  => Sigma_Mb_C'Access,
          Theta_Max => Theta_Max.Value)
