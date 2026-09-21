@@ -1,0 +1,6 @@
+---
+description: Data products for the Css Weighted Least Squares component.
+data_products:
+  - name: Sun_Heading_Estimate
+    type: Css_Weighted_Least_Squares_Output.T
+    description: "[-] The estimated sun heading and body rate, the post-fit residuals, and the count of sensors that contributed to the fit."
