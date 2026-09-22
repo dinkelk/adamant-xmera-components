@@ -1,0 +1,15 @@
+---
+description: This is a unit test suite for the Solar Array Reference component
+tests:
+  - name: Test
+    description: Run the algorithm on the sun tracking cases of the Python reference test to ensure the Ada to C to C++ integration is sound.
+  - name: Test_Tracking_Mode_Variants
+    description: Check the aligned sun fallback, the commanded offset, and the commanded angle mode with wrapping against the Python reference model.
+  - name: Test_Stale_Command
+    description: Ensure a stale command leaves the last configuration in place, including across a parameter update.
+  - name: Test_Invalid_Parameter
+    description: Ensure a staged configuration the algorithm would reject is refused at validation.
+  - name: Test_Invalid_Command
+    description: Ensure a commanded angle the algorithm would reject is treated as a defect and fails the tick's assertion.
+  - name: Test_Invalid_Data_Dependency
+    description: Ensure a data dependency with the wrong identifier is treated as a wiring defect and fails the tick's assertion.
