@@ -91,7 +91,8 @@ private
       T_Hat_Thruster_B : in Packed_F32x24.U;
       Center_Of_Mass_B : in Packed_F32x3.U;
       Desired_Control_Axes_B : in Desired_Control_Axes.U;
-      Thruster_Availability : in Thruster_Availability_X8.U
+      Thruster_Availability : in Thruster_Availability_X8.U;
+      Cmd_Force_B : in Packed_F32x3.U
    ) return Parameter_Validation_Status.E;
 
    -----------------------------------------------

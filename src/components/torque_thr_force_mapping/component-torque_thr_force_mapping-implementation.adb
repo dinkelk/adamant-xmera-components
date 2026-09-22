@@ -36,11 +36,6 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
        Control_Axes => Desired_Control_Axes.C.To_C (Desired_Control_Axes_B),
        Availability => Thruster_Availability_Array.C.To_C ((Value => Thruster_Availability)));
 
-   -- The states this component serves change the attitude without a delta-v, so no
-   -- force is ever commanded. The algorithm takes the force by pointer, so the zero
-   -- lives here as an object to point at.
-   Zero_Force : aliased constant Packed_F32x3_Record.C.U_C := (Value => [0.0, 0.0, 0.0]);
-
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
@@ -91,11 +86,18 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
       -- Update the parameters:
       Self.Update_Parameters;
 
-      -- Map the torque, with no force, onto the thrusters and publish the result:
-      Self.Data_Product_T_Send (Self.Data_Products.Thruster_Force_Cmd (
-         Arg.Time,
-         Thr_Force_Cmd.C.Pack (Update (Self.Alg, Cmd_Torque_B => Torque_C'Access, Cmd_Force_B => Zero_Force'Access))
-      ));
+      -- The commanded force is a parameter, zero for the states this component serves.
+      -- The algorithm takes it by pointer, so it is marshalled after the parameter
+      -- update into an aliased object.
+      declare
+         Force_C : aliased constant Packed_F32x3_Record.C.U_C := Packed_F32x3_Record.C.To_C ((Value => Self.Cmd_Force_B));
+      begin
+         -- Map the torque and force onto the thrusters and publish the result:
+         Self.Data_Product_T_Send (Self.Data_Products.Thruster_Force_Cmd (
+            Arg.Time,
+            Thr_Force_Cmd.C.Pack (Update (Self.Alg, Cmd_Torque_B => Torque_C'Access, Cmd_Force_B => Force_C'Access))
+         ));
+      end;
    end Tick_T_Recv_Sync;
 
    -- The parameter update connector.
@@ -109,12 +111,14 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
    -- Parameter handlers:
    -----------------------------------------------
    -- Description:
-   --    Parameters for the Torque Thr Force Mapping component. They are the same as the
-   --    force torque thruster force mapping parameters, since both components configure
-   --    the same algorithm.
+   --    Parameters for the Torque Thr Force Mapping component. The geometry parameters
+   --    are the same as the force torque thruster force mapping parameters, since both
+   --    components configure the same algorithm. The commanded force is a parameter here
+   --    rather than a data dependency.
    -- This procedure is called when the parameters of a component have been updated. In this case we
    -- push the whole configuration into the C algorithm, which recomputes the thruster mapping
-   -- matrix. The algorithm carries no other runtime state.
+   -- matrix. The commanded force is not part of the configuration; each tick reads it from the
+   -- parameter store. The algorithm carries no other runtime state.
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
       Cfg : aliased constant Pointer_Config := To_Pointer_Config (
          Self.R_Thruster_B, Self.T_Hat_Thruster_B, Self.Center_Of_Mass_B, Self.Desired_Control_Axes_B, Self.Thruster_Availability);
@@ -142,14 +146,20 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
       T_Hat_Thruster_B : in Packed_F32x24.U;
       Center_Of_Mass_B : in Packed_F32x3.U;
       Desired_Control_Axes_B : in Desired_Control_Axes.U;
-      Thruster_Availability : in Thruster_Availability_X8.U
+      Thruster_Availability : in Thruster_Availability_X8.U;
+      Cmd_Force_B : in Packed_F32x3.U
    ) return Parameter_Validation_Status.E is
       pragma Unreferenced (Self);
       -- Filled in below, inside the handled part of the function, so that a conversion
       -- that raises is caught here.
       Cfg : aliased Pointer_Config;
+      Force_C : Packed_F32x3_Record.C.U_C;
    begin
       Cfg := To_Pointer_Config (R_Thruster_B, T_Hat_Thruster_B, Center_Of_Mass_B, Desired_Control_Axes_B, Thruster_Availability);
+      -- The force is not part of the algorithm configuration, so the only check it needs
+      -- is the one this conversion performs: a non-finite component raises.
+      Force_C := Packed_F32x3_Record.C.To_C ((Value => Cmd_Force_B));
+      pragma Unreferenced (Force_C);
       if Validate_Config (
          Num_Thrusters          => Num_Thrusters.Value,
          R_Thruster_B           => Cfg.R_Thruster'Access,
