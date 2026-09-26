@@ -1,0 +1,6 @@
+---
+description: Data products for the Sunline Filter component.
+data_products:
+  - name: Sun_Direction_Estimate
+    type: Nav_Att_Output.T
+    description: Estimated sun direction in the body frame and body rate, stamped with the time the filter advanced to. The attitude is not estimated by this filter and is zero.
