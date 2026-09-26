@@ -1,0 +1,8 @@
+---
+description: Commands for the Inertial Filter component.
+commands:
+  - name: Set_Diagnostics_Packet_Period
+    description: Set the period of the diagnostics packet in ticks. Zero turns the packet off.
+    arg_type: Packed_U16.T
+  - name: Reset_Measurements
+    description: Clear the pending measurements and residuals at the next tick, keeping the filter state and covariance. The filter's time base restarts at that tick. The filter drops a bad measurement on its own, so this is only needed for testing.
