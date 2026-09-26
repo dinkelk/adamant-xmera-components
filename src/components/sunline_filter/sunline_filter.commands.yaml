@@ -1,0 +1,6 @@
+---
+description: Commands for the Sunline Filter component.
+commands:
+  - name: Set_Diagnostics_Packet_Period
+    description: Set the period of the diagnostics packet in ticks. Zero turns the packet off.
+    arg_type: Packed_U16.T
