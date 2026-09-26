@@ -9,29 +9,6 @@ with Stepper_Motor_Controller_Output.C;
 
 package Stepper_Motor_Controller_Algorithm_C is
 
-   --* Type of command produced by the stepper motor controller. Mirrors the
-   --* C StepperMotorCommandType enumeration carried in the Command_Type field
-   --* of the update output struct. The representation clause pins the literals
-   --* to the C values so that 'Enum_Val is a validity check when
-   --* converting the raw output field: an undefined value raises
-   --* Constraint_Error rather than silently mapping onto a valid command.
-   type Stepper_Motor_Command_Type is
-     (None,
-      Stop,
-      Move)
-     with Convention => C;
-   for Stepper_Motor_Command_Type use
-     (None => 0,
-      Stop => 1,
-      Move => 2);
-
-   --* Result of one controller update, presenting the command as its
-   --* enumeration type. The raw C output struct stays behind Update_C.
-   type Update_Result is record
-      Command       : Stepper_Motor_Command_Type;
-      Steps_To_Move : Integer_32;
-   end record;
-
    --* Opaque handle for a StepperMotorControllerAlgorithm instance.
    type Stepper_Motor_Controller_Algorithm is limited private;
    type Stepper_Motor_Controller_Algorithm_Access is access all Stepper_Motor_Controller_Algorithm;
@@ -112,7 +89,10 @@ package Stepper_Motor_Controller_Algorithm_C is
       Current_Position : Integer_32;
       Reference_Angle  : Short_Float;
       Is_Motor_Moving  : Interfaces.C.C_bool)
-     return Update_Result;
+     return Stepper_Motor_Controller_Output.C.U_C
+     with Import       => True,
+          Convention   => C,
+          External_Name => "StepperMotorControllerAlgorithm_update";
 
    --* @brief Convert a reference angle to an integer step position using the configured step angle.
    --* @param Self  The algorithm instance.
@@ -130,39 +110,6 @@ private
 
    -- Private representation: opaque null record
    type Stepper_Motor_Controller_Algorithm is null record;
-
-   -- Raw C entry point. The public Update wraps this so callers receive the
-   -- command as its enumeration type while the C ABI keeps its raw struct.
-   --* @param Self             The algorithm instance.
-   --* @param Current_Position [steps] Current motor step position (tracked by the caller).
-   --* @param Reference_Angle  [rad] Reference motor angle.
-   --* @param Is_Motor_Moving  True if the motor is currently moving.
-   --* @return The raw C output struct.
-   function Update_C
-     (Self             : Stepper_Motor_Controller_Algorithm_Access;
-      Current_Position : Integer_32;
-      Reference_Angle  : Short_Float;
-      Is_Motor_Moving  : Interfaces.C.C_bool)
-     return Stepper_Motor_Controller_Output.C.U_C
-     with Import       => True,
-          Convention   => C,
-          External_Name => "StepperMotorControllerAlgorithm_update";
-
-   -- Convert the raw update output to the idiomatic result. An out-of-range
-   -- command value from the C side fails the enum conversion's range check.
-   --* @param Output The raw C output struct.
-   --* @return The command as its enumeration type and the step delta.
-   function To_Result (Output : Stepper_Motor_Controller_Output.C.U_C) return Update_Result
-   is ((Command       => Stepper_Motor_Command_Type'Enum_Val (Output.Command_Type),
-        Steps_To_Move => Output.Steps_To_Move));
-
-   function Update
-     (Self             : Stepper_Motor_Controller_Algorithm_Access;
-      Current_Position : Integer_32;
-      Reference_Angle  : Short_Float;
-      Is_Motor_Moving  : Interfaces.C.C_bool)
-     return Update_Result
-   is (To_Result (Update_C (Self, Current_Position, Reference_Angle, Is_Motor_Moving)));
 
 end Stepper_Motor_Controller_Algorithm_C;
 

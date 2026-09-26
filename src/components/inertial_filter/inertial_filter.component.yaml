@@ -1,0 +1,42 @@
+---
+description: Inertial attitude filter. Estimates the body attitude and body rate from the star tracker attitude and rate with a square root unscented Kalman filter, and publishes the estimate for the guidance and control algorithms. A diagnostics packet with the full filter state, covariance, and residuals is produced at a commanded period. The filter keeps its own time base, which restarts at the tick after it is built or reset, so the star tracker time tag and the tick time must be on the same clock. Wraps the InertialFilterAlgorithm C++ algorithm via its C shim.
+execution: passive
+init:
+  description: Initializes the inertial filter with the default parameter values, which seed the filter state and covariance. The diagnostics packet is off until its period is commanded.
+connectors:
+  - description: Run the filter up to the current time, folding in a fresh star tracker reading when there is one.
+    type: Tick.T
+    kind: recv_sync
+  - description: Re-seed the filter state and covariance from the configured initial values and clear the pending measurements and residuals. The filter's time base restarts at the next tick. TODO verify with the GNC team whether this reset is needed at all.
+    name: Reset_Estimate_Tick_T_Recv_Sync
+    type: Tick.T
+    kind: recv_sync
+  - description: Clear the pending measurements and residuals, keeping the filter state and covariance. The filter's time base restarts at the next tick.
+    name: Reset_Measurements_Tick_T_Recv_Sync
+    type: Tick.T
+    kind: recv_sync
+  - description: Fetch a data product item from the database.
+    type: Data_Product_Fetch.T
+    return_type: Data_Product_Return.T
+    kind: request
+  - description: The data product invoker connector
+    type: Data_Product.T
+    kind: send
+  - description: The parameter update connector.
+    type: Parameter_Update.T
+    kind: modify
+  - description: This is the command receive connector.
+    type: Command.T
+    kind: recv_sync
+  - description: This connector is used to register and respond to the component's commands.
+    type: Command_Response.T
+    kind: send
+  - description: The diagnostics packet is sent out of this connector.
+    type: Packet.T
+    kind: send
+  - description: Events are sent out of this connector.
+    type: Event.T
+    kind: send
+  - description: The system time is retrieved via this connector.
+    return_type: Sys_Time.T
+    kind: get

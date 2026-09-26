@@ -1,0 +1,9 @@
+---
+description: Events for the Inertial Filter component.
+events:
+  - name: Diagnostics_Packet_Period_Set
+    description: The diagnostics packet period was set via command, in ticks. Zero turns the packet off.
+    param_type: Packed_U16.T
+  - name: Invalid_Command_Received
+    description: A command was received with invalid arguments.
+    param_type: Invalid_Command_Info.T
