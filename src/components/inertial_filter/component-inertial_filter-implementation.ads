@@ -46,6 +46,9 @@ private
       -- system time would make that first propagation span the whole mission, so the
       -- component gives it a time base of its own, in nanoseconds of system time,
       -- which restarts at the next tick after the filter is built or reset.
+      -- TODO: This time base belongs in the algorithm. If the C++ filter is changed to
+      -- anchor itself at the first time it is handed, the epoch and restart handling
+      -- here goes away. Tracked until that is resolved one way or the other.
       Epoch_Ns : Unsigned_64 := 0;
       Restart_Time_Base : Boolean := True;
       -- Time tag of the last star tracker reading fed to the filter. A reading is fed
