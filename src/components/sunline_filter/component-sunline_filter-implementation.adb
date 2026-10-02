@@ -46,8 +46,11 @@ package body Component.Sunline_Filter.Implementation is
    end Diagonal_Matrix;
 
    -- Marshal the pointer arguments of the configuration. The boresight table is a
-   -- single precision parameter, since the double one would not fit, and is widened
-   -- here.
+   -- single precision parameter, since the double one would not fit in the parameter
+   -- buffer, and is widened here.
+   -- TODO: Widening a parameter to feed the algorithm is a mismatch. Either the
+   -- parameter buffer grows so the table can be double precision, or the algorithm
+   -- takes the table in single precision, and then this conversion goes away.
    function To_Pointer_Config (
       Process_Noise_Diagonal : in Packed_F64x7.U;
       Initial_State : in Packed_F64x7.U;
@@ -61,17 +64,11 @@ package body Component.Sunline_Filter.Implementation is
        Css_N_Hat => (Value => Packed_F64x24.C.To_C ([for I in Css_N_Hat_B'Range => Long_Float (Css_N_Hat_B (I))])),
        Css_Scale_Factor => (Value => Packed_F64x8.C.To_C (Css_Scale_Factor)));
 
-   -- Widen a single precision vector from a data product to the double precision
-   -- the shim takes. The vector is unpacked first, so each element is read whole
-   -- before it is converted.
-   function To_C (Vector : in Packed_F32x3.T) return Packed_F64x3.C.U_C is
-      Unpacked : constant Packed_F32x3.U := Packed_F32x3.Unpack (Vector);
-   begin
-      return Packed_F64x3.C.To_C ([for I in Unpacked'Range => Long_Float (Unpacked (I))]);
-   end To_C;
-
    -- System time in nanoseconds, so measurement times are compared and differenced
    -- exactly.
+   -- TODO: The tick and the data product timestamps are converted here on every
+   -- tick. A tick type that carries a precomputed monotonic time would remove this
+   -- conversion and the epoch arithmetic that follows.
    Ns_Per_Second : constant Unsigned_64 := 1_000_000_000;
    function To_Nanoseconds (Time : in Sys_Time.T) return Unsigned_64 is
       (Unsigned_64 (Time.Seconds) * Ns_Per_Second + (Unsigned_64 (Time.Subseconds) * Ns_Per_Second) / Unsigned_64 (Sys_Time.Subseconds_Type'Modulus));
@@ -160,6 +157,17 @@ package body Component.Sunline_Filter.Implementation is
 
       Tick_Ns : constant Unsigned_64 := To_Nanoseconds (Arg.Time);
       Reset_Commanded : Boolean := False;
+
+      -- Widen the single precision body rate to the double precision the shim takes.
+      -- The vector is unpacked first, so each element is read whole before it is
+      -- converted.
+      -- TODO: The producer publishes single precision and the algorithm takes double.
+      -- One side should change so the conversion goes away.
+      function To_C (Vector : in Packed_F32x3.T) return Packed_F64x3.C.U_C is
+         Unpacked : constant Packed_F32x3.U := Packed_F32x3.Unpack (Vector);
+      begin
+         return Packed_F64x3.C.To_C ([for I in Unpacked'Range => Long_Float (Unpacked (I))]);
+      end To_C;
    begin
       -- Apply any pending parameter update:
       Self.Update_Parameters;
@@ -206,12 +214,15 @@ package body Component.Sunline_Filter.Implementation is
             Rate_Data       => Rate_Data'Access);
       begin
          -- Publish the estimate for the downstream algorithms, narrowed to the single
-         -- precision they consume, and stamped in system seconds. This filter does not
-         -- estimate the attitude.
+         -- precision they consume, and stamped in system seconds.
          Self.Data_Product_T_Send (Self.Data_Products.Sun_Direction_Estimate (
             Arg.Time,
             Nav_Att_Output.Pack ((
                Time_Tag        => Long_Float (Tick_Ns) * 1.0E-9,
+               -- The estimate shares the navigation attitude output type with the
+               -- inertial filter, but this filter estimates only the sun direction and
+               -- the body rate. It has no attitude state, so the attitude field is
+               -- always zero and consumers must not read it from this product.
                Sigma_Bn        => [0.0, 0.0, 0.0],
                Omega_Bn_B      => [for I in 0 .. 2 => Short_Float (Output.Filter_State.State (I + 3))],
                Veh_Sun_Pnt_Bdy => [for I in 0 .. 2 => Short_Float (Output.Filter_State.State (I))]))
