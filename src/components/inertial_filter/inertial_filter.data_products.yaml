@@ -1,0 +1,6 @@
+---
+description: Data products for the Inertial Filter component.
+data_products:
+  - name: Attitude_Estimate
+    type: Nav_Att_Output.T
+    description: Estimated body attitude and body rate, stamped with the time the filter advanced to. The sun direction is not estimated by this filter and is zero.
