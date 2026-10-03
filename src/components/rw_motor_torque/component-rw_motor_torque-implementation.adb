@@ -10,7 +10,6 @@ with Packed_F32x3_X4.C;
 with Rw_Motor_Torque_Control_Axes.C;
 with Rw_Motor_Torque_Output.C;
 with Rw_Speeds_Input.C;
-with Rwa_Speeds;
 with Wheel_Availability_X4.C;
 
 package body Component.Rw_Motor_Torque.Implementation is
@@ -76,11 +75,10 @@ package body Component.Rw_Motor_Torque.Implementation is
       --
       -- Data_Dependency_Status.E can be Success, Not_Available, Error, or Stale.
       -- The control torque is produced by the attitude control component earlier in
-      -- the same tick, the wheel speeds are published fresh every tick by the wheel
-      -- interface, and the desired speeds by the momentum management algorithm ahead
-      -- of this component, so any other status indicates that this component is not
-      -- wired up correctly in the algorithm execution order. That should never happen,
-      -- so we assert.
+      -- the same tick and the wheel speeds are published fresh every tick by the wheel
+      -- interface, so any other status indicates that this component is not wired up
+      -- correctly in the algorithm execution order. That should never happen, so we
+      -- assert.
       Torque : Cmd_Torque_Body.T;
       Torque_Status : constant Data_Dependency_Status.E :=
          Self.Get_Control_Torque (Value => Torque, Stale_Reference => Arg.Time);
@@ -89,22 +87,21 @@ package body Component.Rw_Motor_Torque.Implementation is
       Speeds_Status : constant Data_Dependency_Status.E :=
          Self.Get_Wheel_Speeds (Value => Speeds, Stale_Reference => Arg.Time);
       pragma Assert (Speeds_Status = Success);
-      Desired_Speeds : Rwa_Speeds.T;
-      Desired_Speeds_Status : constant Data_Dependency_Status.E :=
-         Self.Get_Desired_Wheel_Speeds (Value => Desired_Speeds, Stale_Reference => Arg.Time);
-      pragma Assert (Desired_Speeds_Status = Success);
 
       -- Convert to C types. The wheel speeds cross by pointer, so they need objects to
       -- point at.
       Speeds_C : aliased constant Rw_Speeds_Input.C.U_C := To_C (Speeds);
-      Desired_Speeds_C : aliased constant Rw_Speeds_Input.C.U_C := To_C (Desired_Speeds);
    begin
-      -- Apply any pending parameter update (e.g. new wheel availability):
+      -- Apply any pending parameter update (e.g. new wheel availability or desired
+      -- wheel speeds):
       Self.Update_Parameters;
 
       -- Call the C algorithm and send the per-wheel torques straight to the wheel
-      -- interface. Update is qualified because Parameter_Enums also declares one.
+      -- interface. The desired wheel speeds are read after the parameter update so a
+      -- new table takes effect on this tick. Update is qualified because
+      -- Parameter_Enums also declares one.
       declare
+         Desired_Speeds_C : aliased constant Rw_Speeds_Input.C.U_C := To_C (Rwa_Speeds.Pack (Self.Desired_Wheel_Speeds));
          Output : constant Rw_Motor_Torque_Output.C.U_C := Rw_Motor_Torque_Algorithm_C.Update (
             Self.Alg,
             Lr_B              => (Value => Packed_F32x3.C.Unpack (Torque.Torque_Request_Body)),
@@ -156,13 +153,18 @@ package body Component.Rw_Motor_Torque.Implementation is
       Control_Axes : in Rw_Motor_Torque_Control_Axes.U;
       Rw_Spin_Axes : in Packed_F32x3_X4.U;
       Wheel_Availability : in Wheel_Availability_X4.U;
-      Omega_Gain : in Packed_F32.U
+      Omega_Gain : in Packed_F32.U;
+      Desired_Wheel_Speeds : in Rwa_Speeds.U
    ) return Parameter_Validation_Status.E is
       Ignore : Instance renames Self;
+      Ignore_Desired_Wheel_Speeds : Rwa_Speeds.U renames Desired_Wheel_Speeds;
       -- Filled in below, inside the handled part of the function, so that a conversion
       -- that raises is caught here.
       Cfg : aliased Pointer_Config;
    begin
+      -- The desired wheel speeds are not part of the algorithm configuration, they go
+      -- in with every update, and a non-finite one is already rejected at staging by
+      -- the type validation of the record, so there is nothing to check here.
       Cfg := To_Pointer_Config (Control_Axes, Rw_Spin_Axes, Wheel_Availability);
       if Validate_Config (
          Desired_Control_Axes_B => Cfg.Control_Axes'Access,
