@@ -4,9 +4,10 @@ execution: passive
 init:
   description: Initializes the inertial 3D algorithm instance.
 connectors:
-  - description: Run the algorithm up to the current time.
+  - description: Run the algorithm up to the current time and return the attitude reference it produces. The same reference is published as a data product.
     type: Tick.T
-    kind: recv_sync
+    return_type: Att_Ref.T
+    kind: service
   - description: Fetch a data product item from the database.
     type: Data_Product_Fetch.T
     return_type: Data_Product_Return.T

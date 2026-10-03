@@ -4,6 +4,7 @@
 
 -- Includes:
 with Tick;
+with Att_Ref;
 with Parameter_Update;
 with Sun_Avoidance_Algorithm_C; use Sun_Avoidance_Algorithm_C;
 
@@ -47,8 +48,9 @@ private
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time.
-   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
+   -- Run the algorithm up to the current time and return the attitude reference it
+   -- produces. The same reference is published as a data product.
+   overriding function Tick_T_Service (Self : in out Instance; Arg : in Tick.T) return Att_Ref.T;
    -- Discard the planned slew so the next tick plans a new one from the current
    -- geometry. Must be called on any transition into the guidance mode that uses
    -- this component.
