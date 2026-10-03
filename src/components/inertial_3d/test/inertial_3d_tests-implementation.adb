@@ -7,8 +7,22 @@ with Packed_F32x3;
 with Packed_F32x3.Assertion; use Packed_F32x3.Assertion;
 with Component.Inertial_3d.Implementation.Tester;
 with Att_Ref;
+with Att_Ref.Assertion; use Att_Ref.Assertion;
+with Tick;
 
 package body Inertial_3d_Tests.Implementation is
+
+   -------------------------------------------------------------------------
+   -- Helpers:
+   -------------------------------------------------------------------------
+
+   -- Request a tick and check that the reference it returns is the one it published.
+   procedure Request_Tick (Self : in out Instance; Arg : in Tick.T) is
+      T : Component.Inertial_3d.Implementation.Tester.Instance_Access renames Self.Tester;
+      Returned : constant Att_Ref.T := T.Tick_T_Request (Arg);
+   begin
+      Att_Ref_Assert.Eq (Returned, T.Attitude_Reference_History.Get (T.Attitude_Reference_History.Get_Count));
+   end Request_Tick;
 
    -------------------------------------------------------------------------
    -- Fixtures:
@@ -62,7 +76,7 @@ package body Inertial_3d_Tests.Implementation is
          T.Sigma_Reference := (Value => Test_Cases (I).Sigma_Input);
 
          -- Trigger the component execution.
-         T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+         Request_Tick (Self, (Time => T.System_Time, Count => 0));
 
          -- Ensure output was published.
          Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, I);
@@ -93,20 +107,20 @@ package body Inertial_3d_Tests.Implementation is
       -- First tick applies a non-zero attitude, changed from the zero configuration
       -- Init constructed the algorithm with.
       T.Sigma_Reference := (Value => Attitude);
-      T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+      Request_Tick (Self, (Time => T.System_Time, Count => 0));
       Natural_Assert.Eq (T.Attitude_Reference_History.Get_Count, 1);
       Packed_F32x3_Assert.Eq (T.Attitude_Reference_History.Get (1).Sigma_Rn, Attitude, Epsilon => Epsilon);
 
       -- Second tick fetches the same attitude. The reconfiguration is skipped, but
       -- the reference is still published, and still carries the configured value.
-      T.Tick_T_Send ((Time => T.System_Time, Count => 1));
+      Request_Tick (Self, (Time => T.System_Time, Count => 1));
       Natural_Assert.Eq (T.Attitude_Reference_History.Get_Count, 2);
       Packed_F32x3_Assert.Eq (T.Attitude_Reference_History.Get (2).Sigma_Rn, Attitude, Epsilon => Epsilon);
 
       -- Third tick moves the attitude, so the algorithm must be reconfigured and the
       -- new value must appear in the published reference.
       T.Sigma_Reference := (Value => Moved);
-      T.Tick_T_Send ((Time => T.System_Time, Count => 2));
+      Request_Tick (Self, (Time => T.System_Time, Count => 2));
       Natural_Assert.Eq (T.Attitude_Reference_History.Get_Count, 3);
 
       declare
@@ -119,7 +133,7 @@ package body Inertial_3d_Tests.Implementation is
 
       -- Returning to the original attitude is a change again, so it is re-applied.
       T.Sigma_Reference := (Value => Attitude);
-      T.Tick_T_Send ((Time => T.System_Time, Count => 3));
+      Request_Tick (Self, (Time => T.System_Time, Count => 3));
       Natural_Assert.Eq (T.Attitude_Reference_History.Get_Count, 4);
       Packed_F32x3_Assert.Eq (T.Attitude_Reference_History.Get (4).Sigma_Rn, Attitude, Epsilon => Epsilon);
    end Test_Reconfigures_Only_On_Change;
