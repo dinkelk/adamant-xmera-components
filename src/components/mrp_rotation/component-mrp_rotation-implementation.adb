@@ -2,7 +2,6 @@
 -- Mrp_Rotation Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Att_Ref;
 with Att_Ref.C;
 with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
@@ -59,8 +58,9 @@ package body Component.Mrp_Rotation.Implementation is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time.
-   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is
+   -- Run the algorithm up to the current time and return the attitude reference it
+   -- produces. The same reference is published as a data product.
+   overriding function Tick_T_Service (Self : in out Instance; Arg : in Tick.T) return Att_Ref.T is
       use Data_Product_Enums;
       use Data_Product_Enums.Data_Dependency_Status;
 
@@ -80,17 +80,20 @@ package body Component.Mrp_Rotation.Implementation is
       -- one layout, so the dependency crosses with no intermediate record. It crosses
       -- by pointer, so it needs an object to point at.
       Base_Reference_C : aliased constant Att_Ref.C.U_C := Att_Ref.C.Unpack (Base_Reference);
+      Reference : Att_Ref.T;
    begin
       -- Apply any pending parameter update:
       Self.Update_Parameters;
 
-      -- Call the C algorithm and publish the rotated reference. Update is qualified
-      -- because Parameter_Enums also declares one.
-      Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
-         Arg.Time,
-         Att_Ref.C.Pack (Mrp_Rotation_Algorithm_C.Update (Self.Alg, Att_Ref_Input => Base_Reference_C'Access))
-      ));
-   end Tick_T_Recv_Sync;
+      -- Call the C algorithm. Update is qualified because Parameter_Enums also
+      -- declares one.
+      Reference := Att_Ref.C.Pack (Mrp_Rotation_Algorithm_C.Update (Self.Alg, Att_Ref_Input => Base_Reference_C'Access));
+
+      -- Publish the rotated reference for telemetry and hand it back to the caller,
+      -- which publishes the reference the control chain tracks.
+      Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (Arg.Time, Reference));
+      return Reference;
+   end Tick_T_Service;
 
    -- Restart the rotation from the configured initial attitude. Called on GNC state
    -- change so the rotation does not carry over from the previous state.

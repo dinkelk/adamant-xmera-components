@@ -9,6 +9,7 @@ with Basic_Assertions; use Basic_Assertions;
 with Att_Ref.Assertion; use Att_Ref.Assertion;
 with Mrp_Rotation_Parameters;
 with Packed_F32x3;
+with Tick;
 with Parameter_Enums.Assertion;
 use Parameter_Enums.Parameter_Update_Status;
 use Parameter_Enums.Assertion;
@@ -40,6 +41,14 @@ package body Mrp_Rotation_Tests.Implementation is
    -- Helpers:
    -------------------------------------------------------------------------
 
+   -- Request a tick and check that the reference it returns is the one it published.
+   procedure Request_Tick (Self : in out Instance; Arg : in Tick.T) is
+      T : Component.Mrp_Rotation.Implementation.Tester.Instance_Access renames Self.Tester;
+      Returned : constant Att_Ref.T := T.Tick_T_Request (Arg);
+   begin
+      Att_Ref_Assert.Eq (Returned, T.Attitude_Reference_History.Get (T.Attitude_Reference_History.Get_Count));
+   end Request_Tick;
+
    -- Stage and apply the rotation configuration.
    procedure Apply_Configuration (Self : in out Instance) is
       T : Component.Mrp_Rotation.Implementation.Tester.Instance_Access renames Self.Tester;
@@ -55,7 +64,7 @@ package body Mrp_Rotation_Tests.Implementation is
       T : Component.Mrp_Rotation.Implementation.Tester.Instance_Access renames Self.Tester;
    begin
       T.Base_Attitude_Reference := Base_Reference;
-      T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+      Request_Tick (Self, (Time => T.System_Time, Count => 0));
       Natural_Assert.Eq (T.Data_Product_T_Recv_Sync_History.Get_Count, Tick_Number);
       Natural_Assert.Eq (T.Attitude_Reference_History.Get_Count, Tick_Number);
       Att_Ref_Assert.Eq (T.Attitude_Reference_History.Get (Tick_Number), Expected, Epsilon => Epsilon);
@@ -193,7 +202,7 @@ package body Mrp_Rotation_Tests.Implementation is
    begin
       T.Data_Dependency_Return_Id_Override := 999;
       begin
-         T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+         Request_Tick (Self, (Time => T.System_Time, Count => 0));
          AUnit.Assertions.Assert (False, "A dependency with the wrong identifier should have failed an assertion.");
       exception
          when Ada.Assertions.Assertion_Error =>

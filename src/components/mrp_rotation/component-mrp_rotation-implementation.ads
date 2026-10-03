@@ -4,6 +4,7 @@
 
 -- Includes:
 with Tick;
+with Att_Ref;
 with Parameter_Update;
 with Mrp_Rotation_Algorithm_C; use Mrp_Rotation_Algorithm_C;
 
@@ -57,8 +58,9 @@ private
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time.
-   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
+   -- Run the algorithm up to the current time and return the attitude reference it
+   -- produces. The same reference is published as a data product.
+   overriding function Tick_T_Service (Self : in out Instance; Arg : in Tick.T) return Att_Ref.T;
    -- Restart the rotation from the configured initial attitude. Called on GNC state
    -- change so the rotation does not carry over from the previous state.
    overriding procedure Reset_Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
