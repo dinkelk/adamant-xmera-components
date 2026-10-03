@@ -56,9 +56,16 @@ package body Component.Convert_St_Platform_To_Body.Implementation is
 
       -- Join the two star-tracker solutions into the single measurement the algorithm takes.
       -- The attitude solution supplies the time tag that is passed through to the output.
+      -- The star tracker reports the attitude quaternion scalar last, and the algorithm
+      -- takes it scalar first, so the scalar moves to the front here. The delta
+      -- quaternion is scalar last on both sides.
       Measurement_C : aliased St_Platform_Measurement.C.U_C := St_Platform_Measurement.C.To_C ((
          Time_Tag                  => Platform_Attitude_U.Time_Tag,
-         Platform_Attitude         => Platform_Attitude_U.Platform_Attitude,
+         Platform_Attitude         => [
+            Platform_Attitude_U.Platform_Attitude (3),
+            Platform_Attitude_U.Platform_Attitude (0),
+            Platform_Attitude_U.Platform_Attitude (1),
+            Platform_Attitude_U.Platform_Attitude (2)],
          Platform_Angular_Velocity => Platform_Angular_Velocity_U.Platform_Angular_Velocity
       ));
    begin
