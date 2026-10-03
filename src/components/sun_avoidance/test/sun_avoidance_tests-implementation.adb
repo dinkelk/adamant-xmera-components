@@ -12,6 +12,7 @@ with Att_Ref.Assertion; use Att_Ref.Assertion;
 with Packed_F32;
 with Packed_F32x3;
 with Packed_F64x3;
+with Tick;
 with Parameter_Enums.Assertion;
 use Parameter_Enums.Parameter_Update_Status;
 use Parameter_Enums.Assertion;
@@ -53,6 +54,14 @@ package body Sun_Avoidance_Tests.Implementation is
    -- Helpers:
    -------------------------------------------------------------------------
 
+   -- Request a tick and check that the reference it returns is the one it published.
+   procedure Request_Tick (Self : in out Instance; Arg : in Tick.T) is
+      T : Component.Sun_Avoidance.Implementation.Tester.Instance_Access renames Self.Tester;
+      Returned : constant Att_Ref.T := T.Tick_T_Request (Arg);
+   begin
+      Att_Ref_Assert.Eq (Returned, T.Attitude_Reference_History.Get (T.Attitude_Reference_History.Get_Count));
+   end Request_Tick;
+
    -- Stage and apply the test configuration.
    procedure Apply_Test_Parameters (Self : in out Instance) is
       T : Component.Sun_Avoidance.Implementation.Tester.Instance_Access renames Self.Tester;
@@ -73,7 +82,7 @@ package body Sun_Avoidance_Tests.Implementation is
       T.Input_Attitude_Reference := Input_Reference;
       T.Spacecraft_State := (Position => Zero_Vector, Velocity => Zero_Vector);
       T.Sun_State := (Position => Sun_Position, Velocity => Zero_Vector);
-      T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+      Request_Tick (Self, (Time => T.System_Time, Count => 0));
    end Tick_At;
 
    -- Check the reference published by the most recent tick.
@@ -258,7 +267,7 @@ package body Sun_Avoidance_Tests.Implementation is
    begin
       T.Data_Dependency_Return_Id_Override := 999;
       begin
-         T.Tick_T_Send ((Time => T.System_Time, Count => 0));
+         Request_Tick (Self, (Time => T.System_Time, Count => 0));
          AUnit.Assertions.Assert (False, "A dependency with the wrong identifier should have failed an assertion.");
       exception
          when Ada.Assertions.Assertion_Error =>
