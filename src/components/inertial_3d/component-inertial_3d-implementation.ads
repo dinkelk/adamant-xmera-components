@@ -4,6 +4,7 @@
 
 -- Includes:
 with Tick;
+with Att_Ref;
 with Packed_F32x3_Record;
 with Inertial_3d_Algorithm_C; use Inertial_3d_Algorithm_C;
 
@@ -49,14 +50,14 @@ private
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time.
-   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T);
+   -- Run the algorithm up to the current time and return the attitude reference it
+   -- produces. The same reference is published as a data product.
+   overriding function Tick_T_Service (Self : in out Instance; Arg : in Tick.T) return Att_Ref.T;
 
    ---------------------------------------
    -- Invoker connector primitives:
    ---------------------------------------
    -- This procedure is called when a Data_Product_T_Send message is dropped due to a full queue.
-   overriding procedure Data_Product_T_Send_Dropped (Self : in out Instance; Arg : in Data_Product.T) is null;
 
    -----------------------------------------------
    -- Data dependency primitives:
