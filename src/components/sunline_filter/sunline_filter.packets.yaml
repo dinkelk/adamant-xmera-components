@@ -1,0 +1,6 @@
+---
+description: Packets for the Sunline Filter component.
+packets:
+  - name: Filter_Diagnostics
+    type: Sunline_Filter_Output.T
+    description: The full filter snapshot after the update, the state, the covariance, and the residuals of each measurement kind. Sent every diagnostics packet period, in ticks, as set by command.
