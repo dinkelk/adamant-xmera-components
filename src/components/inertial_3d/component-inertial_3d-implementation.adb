@@ -2,7 +2,6 @@
 -- Inertial_3d Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Att_Ref;
 with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
 
@@ -36,8 +35,9 @@ package body Component.Inertial_3d.Implementation is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time.
-   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is
+   -- Run the algorithm up to the current time and return the attitude reference it
+   -- produces.
+   overriding function Tick_T_Service (Self : in out Instance; Arg : in Tick.T) return Att_Ref.T is
       use Data_Product_Enums;
       use Data_Product_Enums.Data_Dependency_Status;
       -- Change detection below compares the packed representations directly, which
@@ -85,21 +85,21 @@ package body Component.Inertial_3d.Implementation is
          -- The algorithm holds the reference attitude as configuration and returns
          -- it unchanged, so Update takes no per-tick input.
          Sigma_Rn_C : constant Packed_F32x3_Record.C.U_C := Update (Self.Alg);
-      begin
          -- Build the attitude reference message around the MRP. The algorithm
          -- produces the MRP alone; the reference rates are zero for a fixed
          -- inertial attitude, matching the C++ adapter, which zero-initializes the
          -- payload and writes only sigma_RN.
-         Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
-            Arg.Time,
-            Att_Ref.Pack ((
-               Sigma_Rn => Packed_F32x3.C.To_Ada (Sigma_Rn_C.Value),
-               Omega_Rn_N => [others => 0.0],
-               Domega_Rn_N => [others => 0.0]
-            ))
+         Reference : constant Att_Ref.T := Att_Ref.Pack ((
+            Sigma_Rn => Packed_F32x3.C.To_Ada (Sigma_Rn_C.Value),
+            Omega_Rn_N => [others => 0.0],
+            Domega_Rn_N => [others => 0.0]
          ));
+      begin
+         -- Hand the reference back to the caller, which publishes the reference the
+         -- control chain tracks.
+         return Reference;
       end;
-   end Tick_T_Recv_Sync;
+   end Tick_T_Service;
 
    -----------------------------------------------
    -- Data dependency handlers:
