@@ -1,0 +1,9 @@
+---
+description: The tick a guidance stage runs on and the attitude reference it starts from. The component that chains the guidance stages hands this to a stage and receives the stage's reference back.
+fields:
+  - name: Current_Tick
+    type: Tick.T
+    description: The tick the stage runs on.
+  - name: Reference
+    type: Att_Ref.T
+    description: The attitude reference the stage starts from.
