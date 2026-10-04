@@ -2,7 +2,6 @@
 -- Celestial_Two_Body_Point Component Implementation Body
 --------------------------------------------------------------------------------
 
-with Att_Ref;
 with Att_Ref.C;
 with Cartesian_State;
 with Packed_F64x3.C;
@@ -30,8 +29,9 @@ package body Component.Celestial_Two_Body_Point.Implementation is
    ---------------------------------------
    -- Invokee connector primitives:
    ---------------------------------------
-   -- Run the algorithm up to the current time.
-   overriding procedure Tick_T_Recv_Sync (Self : in out Instance; Arg : in Tick.T) is
+   -- Run the algorithm up to the current time and return the attitude reference it
+   -- produces.
+   overriding function Tick_T_Service (Self : in out Instance; Arg : in Tick.T) return Att_Ref.T is
       use Data_Product_Enums;
       use Data_Product_Enums.Data_Dependency_Status;
 
@@ -61,18 +61,15 @@ package body Component.Celestial_Two_Body_Point.Implementation is
       -- Call the C algorithm and publish the reference. Each position and velocity is
       -- converted straight from the packed record and crosses by value. Update is
       -- qualified because Parameter_Enums also declares one.
-      Self.Data_Product_T_Send (Self.Data_Products.Attitude_Reference (
-         Arg.Time,
-         Att_Ref.C.Pack (Celestial_Two_Body_Point_Algorithm_C.Update (
-            Self.Alg,
-            R_Pn_N => (Value => Packed_F64x3.C.Unpack (Primary.Position)),
-            V_Pn_N => (Value => Packed_F64x3.C.Unpack (Primary.Velocity)),
-            R_Sn_N => (Value => Packed_F64x3.C.Unpack (Secondary.Position)),
-            V_Sn_N => (Value => Packed_F64x3.C.Unpack (Secondary.Velocity)),
-            R_Bn_N => (Value => Packed_F64x3.C.Unpack (Spacecraft.Position)),
-            V_Bn_N => (Value => Packed_F64x3.C.Unpack (Spacecraft.Velocity))))
-      ));
-   end Tick_T_Recv_Sync;
+      return Att_Ref.C.Pack (Celestial_Two_Body_Point_Algorithm_C.Update (
+         Self.Alg,
+         R_Pn_N => (Value => Packed_F64x3.C.Unpack (Primary.Position)),
+         V_Pn_N => (Value => Packed_F64x3.C.Unpack (Primary.Velocity)),
+         R_Sn_N => (Value => Packed_F64x3.C.Unpack (Secondary.Position)),
+         V_Sn_N => (Value => Packed_F64x3.C.Unpack (Secondary.Velocity)),
+         R_Bn_N => (Value => Packed_F64x3.C.Unpack (Spacecraft.Position)),
+         V_Bn_N => (Value => Packed_F64x3.C.Unpack (Spacecraft.Velocity))));
+   end Tick_T_Service;
 
    -- The parameter update connector.
    overriding procedure Parameter_Update_T_Modify (Self : in out Instance; Arg : in out Parameter_Update.T) is
