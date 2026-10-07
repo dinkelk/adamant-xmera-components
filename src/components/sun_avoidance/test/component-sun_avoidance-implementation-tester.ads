@@ -8,7 +8,7 @@ with Printable_History;
 with Data_Product_Return.Representation;
 with Data_Product_Fetch.Representation;
 with Nav_Att_Output;
-with Cartesian_State;
+with Packed_F32x3;
 
 -- Sun avoidance attitude guidance. Superimposes a constant rate slew from the
 -- current body attitude onto the input attitude reference, taking the long way
@@ -33,8 +33,7 @@ package Component.Sun_Avoidance.Implementation.Tester is
       -- and will be returned to the component when a data dependency call
       -- is made.
       Spacecraft_Attitude : Nav_Att_Output.T;
-      Spacecraft_State : Cartesian_State.T;
-      Sun_State : Cartesian_State.T;
+      Sun_Direction : Packed_F32x3.T;
       -- The return status for the data dependency fetch. This can be set
       -- during unit test to return something other than Success.
       Data_Dependency_Return_Status_Override : Data_Product_Enums.Fetch_Status.E := Data_Product_Enums.Fetch_Status.Success;

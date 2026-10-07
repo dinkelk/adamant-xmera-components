@@ -53,10 +53,8 @@ package body Component.Sun_Avoidance.Implementation.Tester is
          case Arg.Id is
             -- ID for Spacecraft_Attitude:
             when 0 => Id_To_Return := 0;
-            -- ID for Spacecraft_State:
+            -- ID for Sun_Direction:
             when 1 => Id_To_Return := 1;
-            -- ID for Sun_State:
-            when 2 => Id_To_Return := 2;
             -- If ID can not be found, then return ID out of range error.
             when others =>
                if Return_Status = Data_Product_Enums.Fetch_Status.Success then
@@ -70,10 +68,8 @@ package body Component.Sun_Avoidance.Implementation.Tester is
          case Arg.Id is
             -- Length for Spacecraft_Attitude:
             when 0 => Length_To_Return := Nav_Att_Output.Size_In_Bytes;
-            -- Length for Spacecraft_State:
-            when 1 => Length_To_Return := Cartesian_State.Size_In_Bytes;
-            -- Length for Sun_State:
-            when 2 => Length_To_Return := Cartesian_State.Size_In_Bytes;
+            -- Length for Sun_Direction:
+            when 1 => Length_To_Return := Packed_F32x3.Size_In_Bytes;
             -- If ID can not be found, then return ID out of range error.
             when others =>
                if Return_Status = Data_Product_Enums.Fetch_Status.Success then
@@ -94,14 +90,10 @@ package body Component.Sun_Avoidance.Implementation.Tester is
             when 0 =>
                Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Nav_Att_Output.Size_In_Bytes - 1) :=
                   Nav_Att_Output.Serialization.To_Byte_Array (Self.Spacecraft_Attitude);
-            -- Length for Spacecraft_State:
+            -- Length for Sun_Direction:
             when 1 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Cartesian_State.Size_In_Bytes - 1) :=
-                  Cartesian_State.Serialization.To_Byte_Array (Self.Spacecraft_State);
-            -- Length for Sun_State:
-            when 2 =>
-               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Cartesian_State.Size_In_Bytes - 1) :=
-                  Cartesian_State.Serialization.To_Byte_Array (Self.Sun_State);
+               Buffer_To_Return (Buffer_To_Return'First .. Buffer_To_Return'First + Packed_F32x3.Size_In_Bytes - 1) :=
+                  Packed_F32x3.Serialization.To_Byte_Array (Self.Sun_Direction);
             -- Do not fill. The ID is not recognized.
             when others =>
                Return_Status := Data_Product_Enums.Fetch_Status.Id_Out_Of_Range;
