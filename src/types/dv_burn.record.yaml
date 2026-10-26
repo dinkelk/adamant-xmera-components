@@ -1,0 +1,14 @@
+---
+description: A delta-V burn, as the burn executor takes it when a burn is commanded.
+fields:
+  - name: Min_Time
+    description: "[s] Minimum burn time before the burn can complete on the delta-V criterion. Must be finite and not negative."
+    type: Long_Float
+    format: F64
+  - name: Max_Time
+    description: "[s] Maximum burn time, at which the burn completes whatever the delta-V. Must be finite, positive, and greater than the minimum burn time after both are rounded to nanoseconds."
+    type: Long_Float
+    format: F64
+  - name: Cmd_Dv_N
+    description: "[m/s] Commanded delta-V in inertial frame components, of which only the magnitude is compared with the accumulated delta-V. Must be finite. Zero is permitted."
+    type: Packed_F32x3.T
