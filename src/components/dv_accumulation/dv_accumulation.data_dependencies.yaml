@@ -1,0 +1,6 @@
+---
+description: Data dependencies for the Dv Accumulation component.
+data_dependencies:
+  - name: Imu_Body_Data
+    type: Averaged_Imu_Data.T
+    description: "[m/s^2] Averaged IMU data in body frame components. Only the acceleration is read, as the body frame acceleration that gravity does not cause. It is produced every tick, ahead of this component."
