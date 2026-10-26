@@ -1,0 +1,11 @@
+---
+description: This is a unit test suite for the Dv Accumulation component
+tests:
+  - name: Test
+    description: Feed a constant acceleration and check the accumulated delta-V grows by the acceleration times the control period on each tick after the first, which starts the window, to ensure the Ada to C to C++ integration is sound.
+  - name: Test_Bias
+    description: Ensure a commanded accelerometer bias is subtracted from each sample from the tick after it is sent.
+  - name: Test_Reset
+    description: Ensure the reset connector zeroes the accumulated delta-V and the next sample starts a new window without being integrated.
+  - name: Test_Invalid_Data_Dependency
+    description: Ensure a data dependency with the wrong identifier fails an assertion and nothing is published.
