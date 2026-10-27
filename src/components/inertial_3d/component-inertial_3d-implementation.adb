@@ -15,8 +15,7 @@ package body Component.Inertial_3d.Implementation is
       -- The attitude to hold arrives through a connector once the assembly is
       -- running. Construct the algorithm with the zero MRP so a tick landing before
       -- the first command still produces deterministic output.
-      Sigma_Rn_C : constant Packed_F32x3_Record.C.U_C :=
-         Packed_F32x3_Record.C.Unpack ((Value => [0.0, 0.0, 0.0]));
+      Sigma_Rn_C : constant Packed_F32x3_Record.C.U_C := (Value => [0.0, 0.0, 0.0]);
    begin
       -- Create throws on an invalid configuration. The zero MRP is a valid one, so
       -- this asserts a property of the default rather than checking runtime input.
@@ -42,11 +41,11 @@ package body Component.Inertial_3d.Implementation is
       -- unchanged, so Update takes no per-tick input. It produces the MRP alone; the
       -- reference rates are zero for a fixed inertial attitude, matching the C++
       -- adapter, which zero-initializes the payload and writes only sigma_RN.
-      return Att_Ref.Pack ((
-         Sigma_Rn => Packed_F32x3.C.To_Ada (Update (Self.Alg).Value),
+      return (
+         Sigma_Rn => Packed_F32x3.C.Pack (Update (Self.Alg).Value),
          Omega_Rn_N => [others => 0.0],
          Domega_Rn_N => [others => 0.0]
-      ));
+      );
    end Tick_T_Service;
 
    -- Set the inertial attitude the reference holds, as the MRP from the inertial
