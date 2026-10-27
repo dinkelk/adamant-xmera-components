@@ -26,8 +26,8 @@ package body Component.Solar_Array_Reference.Implementation is
       Drive_Axis : in Packed_F32x3.U;
       Surface_Normal : in Packed_F32x3.U
    ) return Pointer_Config is
-      (Drive_Axis => (Value => Packed_F32x3.C.To_C (Drive_Axis)),
-       Surface_Normal => (Value => Packed_F32x3.C.To_C (Surface_Normal)));
+      (Drive_Axis => (Value => [for I in Drive_Axis'Range => Drive_Axis (I)]),
+       Surface_Normal => (Value => [for I in Surface_Normal'Range => Surface_Normal (I)]));
 
    -- Push the component's current configuration, the parameters and the last
    -- commanded mode and angles, into the C++ algorithm. Every reconfiguration path
@@ -253,6 +253,12 @@ package body Component.Solar_Array_Reference.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;
