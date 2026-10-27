@@ -3,7 +3,7 @@
 --------------------------------------------------------------------------------
 
 with Att_Ref.C;
-with Packed_F32x3.C;
+with Packed_F32x3;
 with Packed_F32x3_Record.C;
 
 package body Component.Mrp_Rotation.Implementation is
@@ -21,8 +21,8 @@ package body Component.Mrp_Rotation.Implementation is
       Initial_Sigma_Rr0 : in Packed_F32x3.U;
       Omega_Rr0_R : in Packed_F32x3.U
    ) return Pointer_Config is
-      (Initial_Sigma_Rr0 => (Value => Packed_F32x3.C.To_C (Initial_Sigma_Rr0)),
-       Omega_Rr0_R => (Value => Packed_F32x3.C.To_C (Omega_Rr0_R)));
+      (Initial_Sigma_Rr0 => (Value => [for I in Initial_Sigma_Rr0'Range => Initial_Sigma_Rr0 (I)]),
+       Omega_Rr0_R => (Value => [for I in Omega_Rr0_R'Range => Omega_Rr0_R (I)]));
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -136,6 +136,12 @@ package body Component.Mrp_Rotation.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;
