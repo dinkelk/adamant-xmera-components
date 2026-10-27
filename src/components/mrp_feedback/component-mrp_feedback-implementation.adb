@@ -12,8 +12,8 @@ with Mrp_Feedback_Rw_Spin_Axes.C;
 with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
 with Packed_F32x3_X4.C;
-with Packed_F32x4.C;
-with Packed_F32x9.C;
+with Packed_F32x4;
+with Packed_F32x9;
 with Packed_F32x9_Record.C;
 with Rw_Speeds_Input.C;
 with Rwa_Speeds;
@@ -42,10 +42,10 @@ package body Component.Mrp_Feedback.Implementation is
       Rw_Inertias : in Packed_F32x4.U;
       Wheel_Availability : in Wheel_Availability_X4.U
    ) return Pointer_Config is
-      (Known_Torque => (Value => Packed_F32x3.C.To_C (Known_Torque_Pnt_B_B)),
-       Inertia => (Value => Packed_F32x9.C.To_C (Inertia)),
+      (Known_Torque => (Value => [for I in Known_Torque_Pnt_B_B'Range => Known_Torque_Pnt_B_B (I)]),
+       Inertia => (Value => [for I in Inertia'Range => Inertia (I)]),
        Rw_Spin_Axes => (Value => Packed_F32x3_X4.C.To_C (Rw_Spin_Axes)),
-       Rw_Inertias => (Value => Packed_F32x4.C.To_C (Rw_Inertias)),
+       Rw_Inertias => (Value => [for I in Rw_Inertias'Range => Rw_Inertias (I)]),
        Wheel_Availability => (Value => Wheel_Availability_X4.C.To_C (Wheel_Availability)));
 
    --------------------------------------------------
@@ -225,6 +225,12 @@ package body Component.Mrp_Feedback.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;
