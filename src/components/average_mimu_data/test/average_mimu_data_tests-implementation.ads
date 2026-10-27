@@ -14,10 +14,11 @@ private
    overriding procedure Set_Up_Test (Self : in out Instance);
    overriding procedure Tear_Down_Test (Self : in out Instance);
 
-   -- Identity DCM and uniform data - output equals scaled input.
-   overriding procedure Test_Identity_Dcm (Self : in out Instance);
-   -- 90-degree Z-rotation DCM transforms the averaged result into the body frame.
-   overriding procedure Test_Dcm_Rotation (Self : in out Instance);
+   -- Identity mounting attitude and uniform data - output equals scaled input.
+   overriding procedure Test_Identity_Mounting (Self : in out Instance);
+   -- A 90-degree Z-rotation mounting attitude transforms the averaged result into the
+   -- body frame.
+   overriding procedure Test_Rotated_Mounting (Self : in out Instance);
    -- Non-uniform data with negative values averages correctly across signs.
    overriding procedure Test_Mixed_Signs (Self : in out Instance);
    -- Per-sample time windowing excludes samples older than the averaging window.
