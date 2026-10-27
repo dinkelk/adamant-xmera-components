@@ -5,38 +5,55 @@
 with Cmd_Force_Body;
 with Cmd_Torque_Body;
 with Desired_Control_Axes.C;
+with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
 with Thr_Force_Cmd.C;
 with Thruster_Availability_Array.C;
+with Thruster_Availability_X8.C;
 with Thruster_Geometry_Array.C;
 
 package body Component.Force_Torque_Thr_Force_Mapping.Implementation is
+
+   -- The parts of the configuration the shim takes by pointer, held together so a
+   -- caller can pass 'Access of each field. Init, Update_Parameters_Action, and
+   -- Validate_Parameters all marshal the same values, so it is assembled in one place.
+   type Pointer_Config is record
+      R_Thruster : aliased Thruster_Geometry_Array.C.U_C;
+      T_Hat_Thruster : aliased Thruster_Geometry_Array.C.U_C;
+      Center_Of_Mass : aliased Packed_F32x3_Record.C.U_C;
+      Control_Axes : aliased Desired_Control_Axes.C.U_C;
+      Availability : aliased Thruster_Availability_Array.C.U_C;
+   end record;
+
+   -- Marshal the pointer arguments of the configuration.
+   function To_Pointer_Config (
+      R_Thruster_B : in Packed_F32x24.U;
+      T_Hat_Thruster_B : in Packed_F32x24.U;
+      Center_Of_Mass_B : in Packed_F32x3.U;
+      Desired_Control_Axes_B : in Desired_Control_Axes.U;
+      Thruster_Availability : in Thruster_Availability_X8.U
+   ) return Pointer_Config is
+      (R_Thruster => (Value => [for I in R_Thruster_B'Range => R_Thruster_B (I)]),
+       T_Hat_Thruster => (Value => [for I in T_Hat_Thruster_B'Range => T_Hat_Thruster_B (I)]),
+       Center_Of_Mass => (Value => [for I in Center_Of_Mass_B'Range => Center_Of_Mass_B (I)]),
+       Control_Axes => Desired_Control_Axes.C.To_C (Desired_Control_Axes_B),
+       Availability => (Value => Thruster_Availability_X8.C.To_C (Thruster_Availability)));
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
    --------------------------------------------------
    -- Initializes the force torque thruster force mapping algorithm.
    overriding procedure Init (Self : in out Instance) is
-      -- The configuration crosses by reference, so each argument needs an aliased
-      -- object to point at and cannot be marshalled inline.
-      R_Thruster_C : aliased constant Thruster_Geometry_Array.C.U_C :=
-         Thruster_Geometry_Array.C.To_C ((Value => Self.R_Thruster_B));
-      T_Hat_Thruster_C : aliased constant Thruster_Geometry_Array.C.U_C :=
-         Thruster_Geometry_Array.C.To_C ((Value => Self.T_Hat_Thruster_B));
-      Center_Of_Mass_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         Packed_F32x3_Record.C.To_C ((Value => Self.Center_Of_Mass_B));
-      Control_Axes_C : aliased constant Desired_Control_Axes.C.U_C :=
-         Desired_Control_Axes.C.To_C (Self.Desired_Control_Axes_B);
-      Availability_C : aliased constant Thruster_Availability_Array.C.U_C :=
-         Thruster_Availability_Array.C.To_C ((Value => Self.Thruster_Availability));
+      Cfg : aliased constant Pointer_Config := To_Pointer_Config (
+         Self.R_Thruster_B, Self.T_Hat_Thruster_B, Self.Center_Of_Mass_B, Self.Desired_Control_Axes_B, Self.Thruster_Availability);
    begin
       Self.Alg := Create (
          Num_Thrusters          => Self.Num_Thrusters.Value,
-         R_Thruster_B           => R_Thruster_C'Access,
-         T_Hat_Thruster_B       => T_Hat_Thruster_C'Access,
-         Center_Of_Mass_B       => Center_Of_Mass_C'Access,
-         Desired_Control_Axes_B => Control_Axes_C'Access,
-         Thruster_Availability  => Availability_C'Access);
+         R_Thruster_B           => Cfg.R_Thruster'Access,
+         T_Hat_Thruster_B       => Cfg.T_Hat_Thruster'Access,
+         Center_Of_Mass_B       => Cfg.Center_Of_Mass'Access,
+         Desired_Control_Axes_B => Cfg.Control_Axes'Access,
+         Thruster_Availability  => Cfg.Availability'Access);
    end Init;
 
    not overriding procedure Destroy (Self : in out Instance) is
@@ -73,9 +90,9 @@ package body Component.Force_Torque_Thr_Force_Mapping.Implementation is
       declare
          -- Both commands cross by reference, so each needs an aliased object.
          Torque_C : aliased constant Packed_F32x3_Record.C.U_C :=
-            Packed_F32x3_Record.C.Unpack ((Value => Torque_Dep.Torque_Request_Body));
+            (Value => Packed_F32x3.C.Unpack (Torque_Dep.Torque_Request_Body));
          Force_C : aliased constant Packed_F32x3_Record.C.U_C :=
-            Packed_F32x3_Record.C.Unpack ((Value => Force_Dep.Force_Request_Body));
+            (Value => Packed_F32x3.C.Unpack (Force_Dep.Force_Request_Body));
       begin
          Self.Data_Product_T_Send (Self.Data_Products.Thruster_Force_Cmd (
             Arg.Time,
@@ -99,25 +116,17 @@ package body Component.Force_Torque_Thr_Force_Mapping.Implementation is
    -- Set_Config recomputes the thruster mapping matrix; the algorithm carries no
    -- other runtime state.
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
-      R_Thruster_C : aliased constant Thruster_Geometry_Array.C.U_C :=
-         Thruster_Geometry_Array.C.To_C ((Value => Self.R_Thruster_B));
-      T_Hat_Thruster_C : aliased constant Thruster_Geometry_Array.C.U_C :=
-         Thruster_Geometry_Array.C.To_C ((Value => Self.T_Hat_Thruster_B));
-      Center_Of_Mass_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         Packed_F32x3_Record.C.To_C ((Value => Self.Center_Of_Mass_B));
-      Control_Axes_C : aliased constant Desired_Control_Axes.C.U_C :=
-         Desired_Control_Axes.C.To_C (Self.Desired_Control_Axes_B);
-      Availability_C : aliased constant Thruster_Availability_Array.C.U_C :=
-         Thruster_Availability_Array.C.To_C ((Value => Self.Thruster_Availability));
+      Cfg : aliased constant Pointer_Config := To_Pointer_Config (
+         Self.R_Thruster_B, Self.T_Hat_Thruster_B, Self.Center_Of_Mass_B, Self.Desired_Control_Axes_B, Self.Thruster_Availability);
    begin
       Set_Config (
          Self.Alg,
          Num_Thrusters          => Self.Num_Thrusters.Value,
-         R_Thruster_B           => R_Thruster_C'Access,
-         T_Hat_Thruster_B       => T_Hat_Thruster_C'Access,
-         Center_Of_Mass_B       => Center_Of_Mass_C'Access,
-         Desired_Control_Axes_B => Control_Axes_C'Access,
-         Thruster_Availability  => Availability_C'Access);
+         R_Thruster_B           => Cfg.R_Thruster'Access,
+         T_Hat_Thruster_B       => Cfg.T_Hat_Thruster'Access,
+         Center_Of_Mass_B       => Cfg.Center_Of_Mass'Access,
+         Desired_Control_Axes_B => Cfg.Control_Axes'Access,
+         Thruster_Availability  => Cfg.Availability'Access);
    end Update_Parameters_Action;
 
    -- Validate a staged parameter set before it is applied by asking the algorithm's
@@ -134,24 +143,16 @@ package body Component.Force_Torque_Thr_Force_Mapping.Implementation is
       Thruster_Availability : in Thruster_Availability_X8.U
    ) return Parameter_Validation_Status.E is
       pragma Unreferenced (Self);
-      R_Thruster_C : aliased constant Thruster_Geometry_Array.C.U_C :=
-         Thruster_Geometry_Array.C.To_C ((Value => R_Thruster_B));
-      T_Hat_Thruster_C : aliased constant Thruster_Geometry_Array.C.U_C :=
-         Thruster_Geometry_Array.C.To_C ((Value => T_Hat_Thruster_B));
-      Center_Of_Mass_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         Packed_F32x3_Record.C.To_C ((Value => Center_Of_Mass_B));
-      Control_Axes_C : aliased constant Desired_Control_Axes.C.U_C :=
-         Desired_Control_Axes.C.To_C (Desired_Control_Axes_B);
-      Availability_C : aliased constant Thruster_Availability_Array.C.U_C :=
-         Thruster_Availability_Array.C.To_C ((Value => Thruster_Availability));
+      Cfg : aliased constant Pointer_Config := To_Pointer_Config (
+         R_Thruster_B, T_Hat_Thruster_B, Center_Of_Mass_B, Desired_Control_Axes_B, Thruster_Availability);
    begin
       if Validate_Config (
             Num_Thrusters          => Num_Thrusters.Value,
-            R_Thruster_B           => R_Thruster_C'Access,
-            T_Hat_Thruster_B       => T_Hat_Thruster_C'Access,
-            Center_Of_Mass_B       => Center_Of_Mass_C'Access,
-            Desired_Control_Axes_B => Control_Axes_C'Access,
-            Thruster_Availability  => Availability_C'Access)
+            R_Thruster_B           => Cfg.R_Thruster'Access,
+            T_Hat_Thruster_B       => Cfg.T_Hat_Thruster'Access,
+            Center_Of_Mass_B       => Cfg.Center_Of_Mass'Access,
+            Desired_Control_Axes_B => Cfg.Control_Axes'Access,
+            Thruster_Availability  => Cfg.Availability'Access)
       then
          return Parameter_Validation_Status.Valid;
       else
