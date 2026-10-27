@@ -3,11 +3,10 @@
 --------------------------------------------------------------------------------
 
 with Att_Guid;
-with Cmd_Torque_Body;
 with Packed_F32x3;
 with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
-with Packed_F32x9.C;
+with Packed_F32x9;
 
 package body Component.Mrp_Pd.Implementation is
 
@@ -20,7 +19,7 @@ package body Component.Mrp_Pd.Implementation is
       Self.Alg := Create (
          K          => Self.Proportional_Gain_K.Value,
          P          => Self.Derivative_Gain_P.Value,
-         Iscpnt_B_B => (Value => Packed_F32x9.C.To_C (Self.Inertia))
+         Iscpnt_B_B => (Value => [for I in Self.Inertia'Range => Self.Inertia (I)])
       );
    end Init;
 
@@ -45,8 +44,6 @@ package body Component.Mrp_Pd.Implementation is
       Attitude_Guidance_Status : constant Data_Product_Enums.Data_Dependency_Status.E :=
          Self.Get_Attitude_Guidance (Value => Attitude_Guidance_Dep, Stale_Reference => Arg.Time);
       pragma Assert (Attitude_Guidance_Status = Success);
-
-      Guidance : constant Att_Guid.U := Att_Guid.Unpack (Attitude_Guidance_Dep);
    begin
       -- Apply any pending parameter update (e.g. new gains or inertia):
       Self.Update_Parameters;
@@ -57,14 +54,14 @@ package body Component.Mrp_Pd.Implementation is
       declare
          Torque : constant Packed_F32x3_Record.C.U_C := Mrp_Pd_Algorithm_C.Update (
             Self.Alg,
-            Sigma_Br    => (Value => Packed_F32x3.C.To_C (Guidance.Sigma_Br)),
-            Omega_Br_B  => (Value => Packed_F32x3.C.To_C (Guidance.Omega_Br_B)),
-            Domega_Rn_B => (Value => Packed_F32x3.C.To_C (Guidance.Domega_Rn_B))
+            Sigma_Br    => (Value => Packed_F32x3.C.Unpack (Attitude_Guidance_Dep.Sigma_Br)),
+            Omega_Br_B  => (Value => Packed_F32x3.C.Unpack (Attitude_Guidance_Dep.Omega_Br_B)),
+            Domega_Rn_B => (Value => Packed_F32x3.C.Unpack (Attitude_Guidance_Dep.Domega_Rn_B))
          );
       begin
          Self.Data_Product_T_Send (Self.Data_Products.Control_Torque (
             Arg.Time,
-            Cmd_Torque_Body.Pack ((Torque_Request_Body => Packed_F32x3.C.To_Ada (Torque.Value)))
+            (Torque_Request_Body => Packed_F32x3.C.Pack (Torque.Value))
          ));
       end;
    end Tick_T_Recv_Sync;
@@ -90,7 +87,7 @@ package body Component.Mrp_Pd.Implementation is
          Self.Alg,
          K          => Self.Proportional_Gain_K.Value,
          P          => Self.Derivative_Gain_P.Value,
-         Iscpnt_B_B => (Value => Packed_F32x9.C.To_C (Self.Inertia))
+         Iscpnt_B_B => (Value => [for I in Self.Inertia'Range => Self.Inertia (I)])
       );
    end Update_Parameters_Action;
 
@@ -110,13 +107,21 @@ package body Component.Mrp_Pd.Implementation is
       if Validate_Config (
          K          => Proportional_Gain_K.Value,
          P          => Derivative_Gain_P.Value,
-         Iscpnt_B_B => (Value => Packed_F32x9.C.To_C (Inertia)))
+         Iscpnt_B_B => (Value => [for I in Inertia'Range => Inertia (I)]))
       then
          return Parameter_Validation_Status.Valid;
       else
          return Parameter_Validation_Status.Invalid;
       end if;
    exception
+      -- Reachable: float array staging accepts a non-finite value, and copying it into
+      -- the C matrix raises. Rejecting the set here keeps that from unwinding into the
+      -- Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;
