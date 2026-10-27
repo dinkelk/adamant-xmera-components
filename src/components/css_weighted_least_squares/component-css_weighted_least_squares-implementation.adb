@@ -3,6 +3,7 @@
 --------------------------------------------------------------------------------
 
 with Css_Availability_Array.C;
+with Css_Availability_X8.C;
 with Css_Boresight_Array.C;
 with Css_Reading_Array.C;
 with Css_Sensor_Values;
@@ -21,14 +22,13 @@ package body Component.Css_Weighted_Least_Squares.Implementation is
       Availability : aliased Css_Availability_Array.C.U_C;
    end record;
 
-   -- Marshal the pointer arguments of the configuration. The availability enumeration
-   -- is pinned to the C values and one byte wide, so it crosses without conversion.
+   -- Marshal the pointer arguments of the configuration.
    function To_Pointer_Config (
       Css_N_Hat_B : in Packed_F32x24.U;
       Css_Availability : in Css_Availability_X8.U
    ) return Pointer_Config is
-      (Boresights => Css_Boresight_Array.C.To_C ((Data => Css_N_Hat_B)),
-       Availability => Css_Availability_Array.C.To_C ((Value => Css_Availability)));
+      (Boresights => (Data => [for I in Css_N_Hat_B'Range => Css_N_Hat_B (I)]),
+       Availability => (Value => Css_Availability_X8.C.To_C (Css_Availability)));
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -172,6 +172,12 @@ package body Component.Css_Weighted_Least_Squares.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;
