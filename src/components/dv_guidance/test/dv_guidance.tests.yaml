@@ -1,0 +1,9 @@
+---
+description: This is a unit test suite for the Dv Guidance component
+tests:
+  - name: Test
+    description: Check the reference returned for the burn frame of the algorithm's Python reference test, with zero reference rates, to ensure the Ada to C to C++ integration is sound, and that the stand-in frame serves before a burn is commanded.
+  - name: Test_Burn_Frame_Update
+    description: Ensure a newly commanded delta-V and preferred axis reach the reference on the next tick.
+  - name: Test_Invalid_Burn_Frame
+    description: Ensure a burn frame the algorithm rejects is refused with Failure and leaves the reference unchanged.
