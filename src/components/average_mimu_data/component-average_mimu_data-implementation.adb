@@ -5,7 +5,7 @@
 with Mimu_Input_Packet.C;
 with Mimu_Sample_X10.C;
 with Averaged_Imu_Data.C;
-with Packed_F32x3.C;
+with Packed_F32x3;
 
 package body Component.Average_Mimu_Data.Implementation is
 
@@ -18,7 +18,7 @@ package body Component.Average_Mimu_Data.Implementation is
       Self.Alg := Create (
          Gyro_Averaging_Window  => Self.Gyro_Time_Delta.Value,
          Accel_Averaging_Window => Self.Accel_Time_Delta.Value,
-         Sigma_Cb               => (Value => Packed_F32x3.C.To_C (Self.Sigma_Cb))
+         Sigma_Cb               => (Value => [for I in Self.Sigma_Cb'Range => Self.Sigma_Cb (I)])
       );
    end Init;
 
@@ -102,7 +102,7 @@ package body Component.Average_Mimu_Data.Implementation is
          Self.Alg,
          Gyro_Averaging_Window  => Self.Gyro_Time_Delta.Value,
          Accel_Averaging_Window => Self.Accel_Time_Delta.Value,
-         Sigma_Cb               => (Value => Packed_F32x3.C.To_C (Self.Sigma_Cb))
+         Sigma_Cb               => (Value => [for I in Self.Sigma_Cb'Range => Self.Sigma_Cb (I)])
       );
    end Update_Parameters_Action;
 
@@ -121,7 +121,7 @@ package body Component.Average_Mimu_Data.Implementation is
       if Validate_Config (
          Gyro_Averaging_Window  => Gyro_Time_Delta.Value,
          Accel_Averaging_Window => Accel_Time_Delta.Value,
-         Sigma_Cb               => (Value => Packed_F32x3.C.To_C (Sigma_Cb)))
+         Sigma_Cb               => (Value => [for I in Sigma_Cb'Range => Sigma_Cb (I)]))
       then
          return Parameter_Validation_Status.Valid;
       else
@@ -129,8 +129,8 @@ package body Component.Average_Mimu_Data.Implementation is
       end if;
    exception
       -- Reachable, and the parameter rejection test covers it: float array staging accepts a
-      -- non-finite value, and marshalling it in Packed_F32x3.C.To_C raises. Rejecting the set
-      -- here keeps that from unwinding into the Parameters component.
+      -- non-finite value, and copying it into the C vector raises. Rejecting the set here
+      -- keeps that from unwinding into the Parameters component.
       -- TODO: The generated validation of the staged bytes should reject a non-finite
       -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
       -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a

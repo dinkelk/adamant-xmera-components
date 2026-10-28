@@ -22,8 +22,8 @@ package body Component.Triad.Implementation is
       Sada_Hat_B : in Packed_F32x3.U;
       Thrust_Req_Hat_N : in Packed_F32x3.U
    ) return Pointer_Config is
-      (Sada_Hat_B => (Value => Packed_F32x3.C.To_C (Sada_Hat_B)),
-       Thrust_Req_Hat_N => (Value => Packed_F32x3.C.To_C (Thrust_Req_Hat_N)));
+      (Sada_Hat_B => (Value => [for I in Sada_Hat_B'Range => Sada_Hat_B (I)]),
+       Thrust_Req_Hat_N => (Value => [for I in Thrust_Req_Hat_N'Range => Thrust_Req_Hat_N (I)]));
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -146,6 +146,12 @@ package body Component.Triad.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

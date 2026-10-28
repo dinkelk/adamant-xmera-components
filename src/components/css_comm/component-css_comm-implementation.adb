@@ -5,7 +5,7 @@
 with Css_Sensor_Values.C;
 with Cheby_Polynomials.C;
 with Packed_F64x8.C;
-with Packed_F64x11.C;
+with Packed_F64x11;
 
 package body Component.Css_Comm.Implementation is
 
@@ -22,7 +22,7 @@ package body Component.Css_Comm.Implementation is
       -- The array arguments cross by reference, so they need aliased objects to
       -- point at and cannot be marshalled inline.
       Max_Sensor_Values : aliased Packed_F64x8.C.U_C := [others => Self.Max_Sensor_Value.Value];
-      Cheby_Poly_C : aliased Cheby_Polynomials_C_Type := (Data => Packed_F64x11.C.To_C (Self.Cheby_Polynomials));
+      Cheby_Poly_C : aliased Cheby_Polynomials_C_Type := (Data => [for I in Self.Cheby_Polynomials'Range => Self.Cheby_Polynomials (I)]);
    begin
       Self.Alg := Create (
          Max_Sensor_Values => Max_Sensor_Values'Access,
@@ -102,9 +102,7 @@ package body Component.Css_Comm.Implementation is
       -- them. Cheby_Count has no counterpart in the flattened config (the algorithm
       -- uses all MAX_NUM_CHEBY_POLYS coefficients) and is intentionally not applied.
       Max_Sensor_Values : aliased Packed_F64x8.C.U_C := [others => Self.Max_Sensor_Value.Value];
-      Cheby_Poly_C : aliased Cheby_Polynomials_C_Type := (
-         Data => Packed_F64x11.C.To_C (Self.Cheby_Polynomials)
-      );
+      Cheby_Poly_C : aliased Cheby_Polynomials_C_Type := (Data => [for I in Self.Cheby_Polynomials'Range => Self.Cheby_Polynomials (I)]);
    begin
       Set_Config (
          Self.Alg,
@@ -125,7 +123,7 @@ package body Component.Css_Comm.Implementation is
    ) return Parameter_Validation_Status.E is
       pragma Unreferenced (Self, Cheby_Count);
       Max_Sensor_Values : aliased Packed_F64x8.C.U_C := [others => Max_Sensor_Value.Value];
-      Cheby_Poly_C : aliased Cheby_Polynomials_C_Type := (Data => Packed_F64x11.C.To_C (Cheby_Polynomials));
+      Cheby_Poly_C : aliased Cheby_Polynomials_C_Type := (Data => [for I in Cheby_Polynomials'Range => Cheby_Polynomials (I)]);
    begin
       if Validate_Config (
             Max_Sensor_Values => Max_Sensor_Values'Access,

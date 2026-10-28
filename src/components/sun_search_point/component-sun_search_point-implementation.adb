@@ -25,9 +25,9 @@ package body Component.Sun_Search_Point.Implementation is
       -- and in unit test set up.
       Self.Alg := Create (
          Rotations             => Rotations_C'Access,
-         S_Hat_Bdy_Cmd         => (Value => Packed_F32x3.C.To_C (Self.S_Hat_Bdy_Cmd)),
+         S_Hat_Bdy_Cmd         => (Value => [for I in Self.S_Hat_Bdy_Cmd'Range => Self.S_Hat_Bdy_Cmd (I)]),
          Sun_Axis_Spin_Rate    => Self.Sun_Axis_Spin_Rate.Value,
-         Omega_Rn_B            => (Value => Packed_F32x3.C.To_C (Self.Omega_Rn_B_Cfg)),
+         Omega_Rn_B            => (Value => [for I in Self.Omega_Rn_B_Cfg'Range => Self.Omega_Rn_B_Cfg (I)]),
          Observation_Threshold => Unsigned_32 (Self.Observation_Threshold.Value),
          Control_Period        => Self.Control_Period,
          Deadband_Angle        => Self.Deadband_Angle.Value);
@@ -126,9 +126,9 @@ package body Component.Sun_Search_Point.Implementation is
       Set_Config (
          Self.Alg,
          Rotations             => Rotations_C'Access,
-         S_Hat_Bdy_Cmd         => (Value => Packed_F32x3.C.To_C (Self.S_Hat_Bdy_Cmd)),
+         S_Hat_Bdy_Cmd         => (Value => [for I in Self.S_Hat_Bdy_Cmd'Range => Self.S_Hat_Bdy_Cmd (I)]),
          Sun_Axis_Spin_Rate    => Self.Sun_Axis_Spin_Rate.Value,
-         Omega_Rn_B            => (Value => Packed_F32x3.C.To_C (Self.Omega_Rn_B_Cfg)),
+         Omega_Rn_B            => (Value => [for I in Self.Omega_Rn_B_Cfg'Range => Self.Omega_Rn_B_Cfg (I)]),
          Observation_Threshold => Unsigned_32 (Self.Observation_Threshold.Value),
          Control_Period        => Self.Control_Period,
          Deadband_Angle        => Self.Deadband_Angle.Value);
@@ -153,9 +153,9 @@ package body Component.Sun_Search_Point.Implementation is
    begin
       if Validate_Config (
             Rotations             => Rotations_C'Access,
-            S_Hat_Bdy_Cmd         => (Value => Packed_F32x3.C.To_C (S_Hat_Bdy_Cmd)),
+            S_Hat_Bdy_Cmd         => (Value => [for I in S_Hat_Bdy_Cmd'Range => S_Hat_Bdy_Cmd (I)]),
             Sun_Axis_Spin_Rate    => Sun_Axis_Spin_Rate.Value,
-            Omega_Rn_B            => (Value => Packed_F32x3.C.To_C (Omega_Rn_B_Cfg)),
+            Omega_Rn_B            => (Value => [for I in Omega_Rn_B_Cfg'Range => Omega_Rn_B_Cfg (I)]),
             Observation_Threshold => Unsigned_32 (Observation_Threshold.Value),
             Control_Period        => Self.Control_Period,
             Deadband_Angle        => Deadband_Angle.Value)
@@ -166,8 +166,14 @@ package body Component.Sun_Search_Point.Implementation is
       end if;
    exception
       -- Reachable, and the parameter rejection test covers it: float array staging accepts a
-      -- non-finite value, and marshalling it in Packed_F32x3.C.To_C raises. Rejecting the set
-      -- here keeps that from unwinding into the Parameters component.
+      -- non-finite value, and copying it into the C vector raises. Rejecting the set here
+      -- keeps that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

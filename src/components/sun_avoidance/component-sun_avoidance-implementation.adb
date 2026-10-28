@@ -17,7 +17,7 @@ package body Component.Sun_Avoidance.Implementation is
    overriding procedure Init (Self : in out Instance) is
       -- The sensitive axis crosses by pointer, so it needs an object to point at.
       Sensitive_Hat_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Packed_F32x3.C.To_C (Self.Sensitive_Hat_B));
+         (Value => [for I in Self.Sensitive_Hat_B'Range => Self.Sensitive_Hat_B (I)]);
    begin
       -- Create throws on an invalid configuration, so the parameter defaults must form a
       -- valid one. The generated Assert_Valid_Parameter_Defaults checks them at startup
@@ -110,7 +110,7 @@ package body Component.Sun_Avoidance.Implementation is
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
       -- The sensitive axis crosses by pointer, so it needs an object to point at.
       Sensitive_Hat_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Packed_F32x3.C.To_C (Self.Sensitive_Hat_B));
+         (Value => [for I in Self.Sensitive_Hat_B'Range => Self.Sensitive_Hat_B (I)]);
    begin
       -- The values were checked by Validate_Parameters at staging, so Set_Config will not
       -- reject them.
@@ -135,7 +135,7 @@ package body Component.Sun_Avoidance.Implementation is
       -- that raises is caught here.
       Sensitive_Hat_C : aliased Packed_F32x3_Record.C.U_C;
    begin
-      Sensitive_Hat_C := (Value => Packed_F32x3.C.To_C (Sensitive_Hat_B));
+      Sensitive_Hat_C := (Value => [for I in Sensitive_Hat_B'Range => Sensitive_Hat_B (I)]);
       if Validate_Config (
          Sensitive_Hat_B => Sensitive_Hat_C'Access,
          Slew_Rate       => Slew_Rate.Value)
@@ -148,6 +148,12 @@ package body Component.Sun_Avoidance.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

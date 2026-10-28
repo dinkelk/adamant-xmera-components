@@ -56,7 +56,7 @@ package body Component.Rw_Motor_Torque.Implementation is
          Gs_Matrix_B            => Cfg.Rw_Spin_Axes'Access,
          Wheel_Availability     => Cfg.Wheel_Availability'Access,
          Omega_Gain             => Self.Omega_Gain.Value);
-      Self.Desired_Speeds_C := Rw_Speeds_Input.C.To_C (Self.Desired_Wheel_Speeds);
+      Self.Desired_Speeds_C := (Wheel_Speeds => [for I in Self.Desired_Wheel_Speeds.Wheel_Speeds'Range => Self.Desired_Wheel_Speeds.Wheel_Speeds (I)]);
    end Init;
 
    not overriding procedure Destroy (Self : in out Instance) is
@@ -144,7 +144,7 @@ package body Component.Rw_Motor_Torque.Implementation is
          Gs_Matrix_B            => Cfg.Rw_Spin_Axes'Access,
          Wheel_Availability     => Cfg.Wheel_Availability'Access,
          Omega_Gain             => Self.Omega_Gain.Value);
-      Self.Desired_Speeds_C := Rw_Speeds_Input.C.To_C (Self.Desired_Wheel_Speeds);
+      Self.Desired_Speeds_C := (Wheel_Speeds => [for I in Self.Desired_Wheel_Speeds.Wheel_Speeds'Range => Self.Desired_Wheel_Speeds.Wheel_Speeds (I)]);
    end Update_Parameters_Action;
 
    -- Validate a staged parameter set before it is applied by asking the algorithm's own
@@ -195,6 +195,12 @@ package body Component.Rw_Motor_Torque.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

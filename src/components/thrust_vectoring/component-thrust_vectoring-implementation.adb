@@ -3,7 +3,6 @@
 --------------------------------------------------------------------------------
 
 with Cmd_Torque_Body;
-with Cmd_Torque_Body.C;
 with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
 
@@ -16,8 +15,8 @@ package body Component.Thrust_Vectoring.Implementation is
    overriding procedure Init (Self : in out Instance) is
       -- The thrust point and center of mass cross by pointer, so they need objects to
       -- point at.
-      R_Mb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.To_C (Self.R_Mb_B));
-      R_Cb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.To_C (Self.R_Cb_B));
+      R_Mb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => [for I in Self.R_Mb_B'Range => Self.R_Mb_B (I)]);
+      R_Cb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => [for I in Self.R_Cb_B'Range => Self.R_Cb_B (I)]);
    begin
       -- Create throws on an invalid configuration, so the parameter defaults must form a
       -- valid one. The generated Assert_Valid_Parameter_Defaults checks them at startup
@@ -55,7 +54,7 @@ package body Component.Thrust_Vectoring.Implementation is
 
       -- The request crosses by pointer, so it needs an object to point at.
       Torque_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Cmd_Torque_Body.C.Unpack (Torque).Torque_Request_Body);
+         (Value => Packed_F32x3.C.Unpack (Torque.Torque_Request_Body));
    begin
       -- Apply any pending parameter update (e.g. a new center of mass):
       Self.Update_Parameters;
@@ -85,8 +84,8 @@ package body Component.Thrust_Vectoring.Implementation is
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
       -- The thrust point and center of mass cross by pointer, so they need objects to
       -- point at.
-      R_Mb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.To_C (Self.R_Mb_B));
-      R_Cb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => Packed_F32x3.C.To_C (Self.R_Cb_B));
+      R_Mb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => [for I in Self.R_Mb_B'Range => Self.R_Mb_B (I)]);
+      R_Cb_B_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => [for I in Self.R_Cb_B'Range => Self.R_Cb_B (I)]);
    begin
       -- The values were checked by Validate_Parameters at staging, so Set_Config will not
       -- reject them.
@@ -114,8 +113,8 @@ package body Component.Thrust_Vectoring.Implementation is
       R_Mb_B_C : aliased Packed_F32x3_Record.C.U_C;
       R_Cb_B_C : aliased Packed_F32x3_Record.C.U_C;
    begin
-      R_Mb_B_C := (Value => Packed_F32x3.C.To_C (R_Mb_B));
-      R_Cb_B_C := (Value => Packed_F32x3.C.To_C (R_Cb_B));
+      R_Mb_B_C := (Value => [for I in R_Mb_B'Range => R_Mb_B (I)]);
+      R_Cb_B_C := (Value => [for I in R_Cb_B'Range => R_Cb_B (I)]);
       if Validate_Config (
          R_Mb_B => R_Mb_B_C'Access,
          Thrust => Thrust.Value,
@@ -129,6 +128,12 @@ package body Component.Thrust_Vectoring.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

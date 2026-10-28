@@ -15,7 +15,7 @@ package body Component.Axis_To_Gimbal_Angles.Implementation is
    overriding procedure Init (Self : in out Instance) is
       -- The mount attitude crosses by pointer, so it needs an object to point at.
       Sigma_Mb_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Packed_F32x3.C.To_C (Self.Sigma_Mb));
+         (Value => [for I in Self.Sigma_Mb'Range => Self.Sigma_Mb (I)]);
    begin
       -- Create throws on an invalid configuration, so the parameter defaults must form a
       -- valid one. The generated Assert_Valid_Parameter_Defaults checks them at startup
@@ -83,7 +83,7 @@ package body Component.Axis_To_Gimbal_Angles.Implementation is
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
       -- The mount attitude crosses by pointer, so it needs an object to point at.
       Sigma_Mb_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         (Value => Packed_F32x3.C.To_C (Self.Sigma_Mb));
+         (Value => [for I in Self.Sigma_Mb'Range => Self.Sigma_Mb (I)]);
    begin
       -- The values were checked by Validate_Parameters at staging, so Set_Config will not
       -- reject them.
@@ -108,7 +108,7 @@ package body Component.Axis_To_Gimbal_Angles.Implementation is
       -- that raises is caught here.
       Sigma_Mb_C : aliased Packed_F32x3_Record.C.U_C;
    begin
-      Sigma_Mb_C := (Value => Packed_F32x3.C.To_C (Sigma_Mb));
+      Sigma_Mb_C := (Value => [for I in Sigma_Mb'Range => Sigma_Mb (I)]);
       if Validate_Config (
          Sigma_Mb  => Sigma_Mb_C'Access,
          Theta_Max => Theta_Max.Value)
@@ -121,6 +121,12 @@ package body Component.Axis_To_Gimbal_Angles.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

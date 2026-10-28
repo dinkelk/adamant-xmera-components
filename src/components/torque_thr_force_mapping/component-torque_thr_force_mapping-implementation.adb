@@ -4,9 +4,11 @@
 
 with Cmd_Torque_Body;
 with Desired_Control_Axes.C;
+with Packed_F32x3.C;
 with Packed_F32x3_Record.C;
 with Thr_Force_Cmd.C;
 with Thruster_Availability_Array.C;
+with Thruster_Availability_X8.C;
 with Thruster_Geometry_Array.C;
 
 package body Component.Torque_Thr_Force_Mapping.Implementation is
@@ -30,11 +32,11 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
       Desired_Control_Axes_B : in Desired_Control_Axes.U;
       Thruster_Availability : in Thruster_Availability_X8.U
    ) return Pointer_Config is
-      (R_Thruster => Thruster_Geometry_Array.C.To_C ((Value => R_Thruster_B)),
-       T_Hat_Thruster => Thruster_Geometry_Array.C.To_C ((Value => T_Hat_Thruster_B)),
-       Center_Of_Mass => Packed_F32x3_Record.C.To_C ((Value => Center_Of_Mass_B)),
+      (R_Thruster => (Value => [for I in R_Thruster_B'Range => R_Thruster_B (I)]),
+       T_Hat_Thruster => (Value => [for I in T_Hat_Thruster_B'Range => T_Hat_Thruster_B (I)]),
+       Center_Of_Mass => (Value => [for I in Center_Of_Mass_B'Range => Center_Of_Mass_B (I)]),
        Control_Axes => Desired_Control_Axes.C.To_C (Desired_Control_Axes_B),
-       Availability => Thruster_Availability_Array.C.To_C ((Value => Thruster_Availability)));
+       Availability => (Value => Thruster_Availability_X8.C.To_C (Thruster_Availability)));
 
    --------------------------------------------------
    -- Subprogram for implementation init method:
@@ -81,7 +83,7 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
 
       -- The command crosses by reference, so it needs an aliased object.
       Torque_C : aliased constant Packed_F32x3_Record.C.U_C :=
-         Packed_F32x3_Record.C.Unpack ((Value => Torque_Dep.Torque_Request_Body));
+         (Value => Packed_F32x3.C.Unpack (Torque_Dep.Torque_Request_Body));
    begin
       -- Update the parameters:
       Self.Update_Parameters;
@@ -90,7 +92,7 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
       -- The algorithm takes it by pointer, so it is marshalled after the parameter
       -- update into an aliased object.
       declare
-         Force_C : aliased constant Packed_F32x3_Record.C.U_C := Packed_F32x3_Record.C.To_C ((Value => Self.Cmd_Force_B));
+         Force_C : aliased constant Packed_F32x3_Record.C.U_C := (Value => [for I in Self.Cmd_Force_B'Range => Self.Cmd_Force_B (I)]);
       begin
          -- Map the torque and force onto the thrusters and publish the result:
          Self.Data_Product_T_Send (Self.Data_Products.Thruster_Force_Cmd (
@@ -157,8 +159,8 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
    begin
       Cfg := To_Pointer_Config (R_Thruster_B, T_Hat_Thruster_B, Center_Of_Mass_B, Desired_Control_Axes_B, Thruster_Availability);
       -- The force is not part of the algorithm configuration, so the only check it needs
-      -- is the one this conversion performs: a non-finite component raises.
-      Force_C := Packed_F32x3_Record.C.To_C ((Value => Cmd_Force_B));
+      -- is the one this copy performs: a non-finite component raises.
+      Force_C := (Value => [for I in Cmd_Force_B'Range => Cmd_Force_B (I)]);
       pragma Unreferenced (Force_C);
       if Validate_Config (
          Num_Thrusters          => Num_Thrusters.Value,
@@ -176,6 +178,12 @@ package body Component.Torque_Thr_Force_Mapping.Implementation is
       -- Reachable, and the parameter rejection test covers it: float staging accepts a
       -- non-finite value, and marshalling it above raises. Rejecting the set here keeps
       -- that from unwinding into the Parameters component.
+      -- TODO: The generated validation of the staged bytes should reject a non-finite
+      -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
+      -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
+      -- NaN or infinity passes. FSF GCC fixed this in 60f5887173a4. Once the compiler
+      -- fix arrives this handler is unreachable and can go, along with the injection in
+      -- the parameter rejection test.
       when Constraint_Error =>
          return Parameter_Validation_Status.Invalid;
    end Validate_Parameters;

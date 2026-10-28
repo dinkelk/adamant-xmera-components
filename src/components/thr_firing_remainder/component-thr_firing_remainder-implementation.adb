@@ -15,7 +15,7 @@ package body Component.Thr_Firing_Remainder.Implementation is
    -- Initializes the thruster firing remainder algorithm with the control period and the default parameter
    -- values.
    overriding procedure Init (Self : in out Instance; Control_Period : in Basic_Types.Positive_Short_Float) is
-      Max_Thrust_C : aliased constant Packed_F32x8.C.U_C := Packed_F32x8.C.To_C (Self.Max_Thrust);
+      Max_Thrust_C : aliased constant Packed_F32x8.C.U_C := [for I in Self.Max_Thrust'Range => Self.Max_Thrust (I)];
    begin
       Self.Control_Period := Control_Period;
       -- Create throws on an invalid configuration, so the parameter defaults must form a
@@ -79,7 +79,7 @@ package body Component.Thr_Firing_Remainder.Implementation is
    -----------------------------------------------
    -- This procedure is called when the parameters of a component have been updated.
    overriding procedure Update_Parameters_Action (Self : in out Instance) is
-      Max_Thrust_C : aliased constant Packed_F32x8.C.U_C := Packed_F32x8.C.To_C (Self.Max_Thrust);
+      Max_Thrust_C : aliased constant Packed_F32x8.C.U_C := [for I in Self.Max_Thrust'Range => Self.Max_Thrust (I)];
    begin
       -- Push the updated parameters into the C++ algorithm in a single call. The
       -- values were checked by Validate_Parameters at staging, so Set_Config will
@@ -104,7 +104,7 @@ package body Component.Thr_Firing_Remainder.Implementation is
       On_Time_Saturation_Factor : in Packed_F32.U;
       Thrust_Pulsing_Regime : in Packed_Pulsing_Regime.U
    ) return Parameter_Validation_Status.E is
-      Max_Thrust_C : aliased constant Packed_F32x8.C.U_C := Packed_F32x8.C.To_C (Max_Thrust);
+      Max_Thrust_C : aliased constant Packed_F32x8.C.U_C := [for I in Max_Thrust'Range => Max_Thrust (I)];
    begin
       if Validate_Config (
             Max_Thrust                => Max_Thrust_C'Access,

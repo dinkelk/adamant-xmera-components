@@ -2,12 +2,10 @@
 -- Convert_St_Platform_To_Body Component Implementation Body
 --------------------------------------------------------------------------------
 
-with St_Platform_Attitude;
-with St_Platform_Angular_Velocity;
-with St_Platform_Measurement;
 with St_Platform_Measurement.C;
 with St_Att.C;
-with Packed_F32x3.C;
+with Packed_F32x3;
+with Packed_F32x4.C;
 
 package body Component.Convert_St_Platform_To_Body.Implementation is
 
@@ -17,7 +15,7 @@ package body Component.Convert_St_Platform_To_Body.Implementation is
    -- Initializes the convert star tracker platform to body algorithm.
    overriding procedure Init (Self : in out Instance) is
    begin
-      Self.Alg := Create (Sigma_Cb => (Value => Packed_F32x3.C.To_C (Self.Sigma_Cb)));
+      Self.Alg := Create (Sigma_Cb => (Value => [for I in Self.Sigma_Cb'Range => Self.Sigma_Cb (I)]));
    end Init;
 
    not overriding procedure Destroy (Self : in out Instance) is
@@ -51,18 +49,13 @@ package body Component.Convert_St_Platform_To_Body.Implementation is
       pragma Assert (Platform_Attitude_Status = Success or else Platform_Attitude_Status = Stale);
       pragma Assert (Platform_Angular_Velocity_Status = Success or else Platform_Angular_Velocity_Status = Stale);
 
-      Platform_Attitude_U : constant St_Platform_Attitude.U :=
-         St_Platform_Attitude.Unpack (Platform_Attitude_Dep);
-      Platform_Angular_Velocity_U : constant St_Platform_Angular_Velocity.U :=
-         St_Platform_Angular_Velocity.Unpack (Platform_Angular_Velocity_Dep);
-
       -- Join the two star-tracker solutions into the single measurement the algorithm takes.
       -- The attitude solution supplies the time tag that is passed through to the output.
-      Measurement_C : aliased St_Platform_Measurement.C.U_C := St_Platform_Measurement.C.To_C ((
-         Time_Tag                  => Platform_Attitude_U.Time_Tag,
-         Platform_Attitude         => Platform_Attitude_U.Platform_Attitude,
-         Platform_Angular_Velocity => Platform_Angular_Velocity_U.Platform_Angular_Velocity
-      ));
+      Measurement_C : aliased St_Platform_Measurement.C.U_C := (
+         Time_Tag                  => Platform_Attitude_Dep.Time_Tag,
+         Platform_Attitude         => Packed_F32x4.C.Unpack (Platform_Attitude_Dep.Platform_Attitude),
+         Platform_Angular_Velocity => Packed_F32x4.C.Unpack (Platform_Angular_Velocity_Dep.Platform_Angular_Velocity)
+      );
    begin
       -- Apply any pending parameter update (e.g. new Sigma_Cb):
       Self.Update_Parameters;
@@ -92,7 +85,7 @@ package body Component.Convert_St_Platform_To_Body.Implementation is
    begin
       -- Rebuild the algorithm configuration from the updated mounting attitude. The value was
       -- checked by Validate_Parameters at staging, so Set_Config will not reject it.
-      Set_Config (Self.Alg, Sigma_Cb => (Value => Packed_F32x3.C.To_C (Self.Sigma_Cb)));
+      Set_Config (Self.Alg, Sigma_Cb => (Value => [for I in Self.Sigma_Cb'Range => Self.Sigma_Cb (I)]));
    end Update_Parameters_Action;
 
    -- Validate a staged Sigma_Cb before it is applied by asking the algorithm's own
@@ -105,15 +98,15 @@ package body Component.Convert_St_Platform_To_Body.Implementation is
    ) return Parameter_Validation_Status.E is
       pragma Unreferenced (Self);
    begin
-      if Validate_Config (Sigma_Cb => (Value => Packed_F32x3.C.To_C (Sigma_Cb))) then
+      if Validate_Config (Sigma_Cb => (Value => [for I in Sigma_Cb'Range => Sigma_Cb (I)])) then
          return Parameter_Validation_Status.Valid;
       else
          return Parameter_Validation_Status.Invalid;
       end if;
    exception
       -- Reachable, and the parameter rejection test covers it: float array staging accepts a
-      -- non-finite value, and marshalling it in Packed_F32x3.C.To_C raises. Rejecting the set
-      -- here keeps that from unwinding into the Parameters component.
+      -- non-finite value, and copying it into the C vector raises. Rejecting the set here
+      -- keeps that from unwinding into the Parameters component.
       -- TODO: The generated validation of the staged bytes should reject a non-finite
       -- value, but GNAT Pro 25.2 evaluates 'Valid on an element of a packed float array
       -- with a non native Scalar_Storage_Order on the unswapped bytes, so at staging a
