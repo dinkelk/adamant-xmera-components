@@ -1,0 +1,7 @@
+---
+description: Parameters for the Dv Maneuver component. The body force depends on the thrusters in use, so it is set for a mission phase rather than per burn.
+parameters:
+  - name: Cmd_Force_B
+    description: "[N] Body force commanded while the burn executes. Must be finite. Zero is permitted."
+    type: Packed_F32x3.T
+    default: "[0.0, 0.0, 0.0]"
