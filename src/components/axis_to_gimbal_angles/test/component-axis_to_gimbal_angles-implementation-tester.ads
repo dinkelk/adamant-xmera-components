@@ -11,6 +11,7 @@ with Data_Product.Representation;
 with Packed_F32x3;
 with Data_Product;
 with Axis_To_Gimbal_Angles_Output.Representation;
+with Packed_F32x3.Representation;
 
 -- Axis to gimbal angles. Maps a commanded body frame thrust direction onto the
 -- two gimbal angles that place the gimbal thrust axis on it. A request beyond the
@@ -27,6 +28,7 @@ package Component.Axis_To_Gimbal_Angles.Implementation.Tester is
 
    -- Data product history packages:
    package Gimbal_Command_History_Package is new Printable_History (Axis_To_Gimbal_Angles_Output.T, Axis_To_Gimbal_Angles_Output.Representation.Image);
+   package Achieved_Thrust_Direction_History_Package is new Printable_History (Packed_F32x3.T, Packed_F32x3.Representation.Image);
 
    -- Component class instance:
    type Instance is new Component.Axis_To_Gimbal_Angles_Reciprocal.Base_Instance with record
@@ -37,6 +39,7 @@ package Component.Axis_To_Gimbal_Angles.Implementation.Tester is
       Data_Product_T_Recv_Sync_History : Data_Product_T_Recv_Sync_History_Package.Instance;
       -- Data product histories:
       Gimbal_Command_History : Gimbal_Command_History_Package.Instance;
+      Achieved_Thrust_Direction_History : Achieved_Thrust_Direction_History_Package.Instance;
       -- Data dependency return values. These can be set during unit test
       -- and will be returned to the component when a data dependency call
       -- is made.
@@ -86,6 +89,10 @@ package Component.Axis_To_Gimbal_Angles.Implementation.Tester is
    -- direction, and the unit thrust direction those angles achieve in body frame
    -- components.
    overriding procedure Gimbal_Command (Self : in out Instance; Arg : in Axis_To_Gimbal_Angles_Output.T);
+   -- [-] The unit thrust direction the gimbal angles achieve in body frame
+   -- components, the same direction the gimbal command carries, on its own for a
+   -- component that reads the direction alone.
+   overriding procedure Achieved_Thrust_Direction (Self : in out Instance; Arg : in Packed_F32x3.T);
 
    -----------------------------------------------
    -- Special primitives for aiding in the staging,
